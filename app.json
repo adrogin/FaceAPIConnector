@@ -1,0 +1,27 @@
+{
+  "id": "a1e5091f-90af-4dbd-b343-2c7a624aee27",
+  "name": "Face Recognition Add-on",
+  "publisher": "Default publisher",
+  "brief": "",
+  "description": "",
+  "version": "1.0.0.0",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "14.0.0.0",
+  "application": "14.0.0.0",
+  "idRanges": 
+  [
+    {
+      "from": 50100,
+      "to": 50149
+    }
+  ],
+  "target": "Extension",
+  "runtime": "3.0",
+  "showMyCode": true
+}
