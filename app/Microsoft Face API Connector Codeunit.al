@@ -3,22 +3,31 @@ codeunit 50101 "Microsoft Face API Connector"
     var
         FaceNotFoundErr: TextConst ENU = 'Could not detect face in the image';
 
-    procedure AddFaceToGroup();
+    procedure DetectFaceInFileSource(): Text;
+    var
+        TempBlob: Codeunit "Temp Blob";
+        FileMgt: Codeunit "File Management";
     begin
-
+        FileMgt.BLOBImport(TempBlob, '');
+        exit(DetectFaceInBlobSource(TempBlob));
     end;
 
-    procedure DeleteFaceFromGroup();
-    begin
-
-    end;
-
-    procedure DetectFaceInBlobSource(Image: Record TempBlob): Text;
+    procedure DetectFaceInBlobSource(var TempBlobImage: Codeunit "Temp Blob"): Text;
     var
         ImageStream: InStream;
     begin
-        Image.Blob.CreateInStream(ImageStream);
+        TempBlobImage.CreateInStream(ImageStream);
         exit(DetectFace('application/octet-stream', ImageStream));
+    end;
+
+    procedure DetectFaceInCameraSource(): Text;
+    var
+        CameraInteraction: Page "Camera Interaction";
+        PictureStream: InStream;
+    begin
+        CameraInteraction.RunModal();
+        if CameraInteraction.GetPicture(PictureStream) then
+            exit(DetectFace('application/octet-stream', PictureStream));
     end;
 
     procedure DetectFaceInUrlSource(Url: Text): Text;
@@ -26,14 +35,14 @@ codeunit 50101 "Microsoft Face API Connector"
         JObj: JsonObject;
         OutStr: OutStream;
         InStr: InStream;
-        TempBlob: Record TempBlob;
+        TempBlob: Codeunit "Temp Blob";
     begin
         // Wrap the URL in a JSon object and send the JSon content to an InStream
         JObj.Add('url', Url);
-        TempBlob.Blob.CreateOutStream(OutStr);
+        TempBlob.CreateOutStream(OutStr);
         JObj.WriteTo(OutStr);
 
-        TempBlob.Blob.CreateInStream(InStr);
+        TempBlob.CreateInStream(InStr);
         exit(DetectFace('application/json', InStr));
     end;
 

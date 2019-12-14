@@ -63,38 +63,14 @@ page 50100 "Face Detection"
     begin
         case ImageSource of
             ImageSource::"File":
-                Response := AnnotateImageFromFileSource;
+                Response := FaceAPIConnector.DetectFaceInFileSource();
             ImageSource::Web:
-                Response := AnnotateImageFromWebSource;
+                Response := FaceAPIConnector.DetectFaceInUrlSource(ImageUrl);
             ImageSource::Camera:
-                Response := AnnotateImageFromCameraSource;
+                Response := FaceAPIConnector.DetectFaceInCameraSource();
         end;
 
         FaceAPIConnector.GetAttributesFromResponseString(Rec, Response);
-    end;
-
-    local procedure AnnotateImageFromFileSource(): Text;
-    var
-        TempBlob: Record TempBlob;
-        MicrosoftFaceAPIConnector: Codeunit "Microsoft Face API Connector";
-        FileMgt: Codeunit "File Management";
-    begin
-        FileMgt.BLOBImport(TempBlob, '');
-        exit(MicrosoftFaceAPIConnector.DetectFaceInBlobSource(TempBlob));
-    end;
-
-    local procedure AnnotateImageFromWebSource(): Text;
-    var
-        MicrosoftFaceAPIConnector: Codeunit "Microsoft Face API Connector";
-    begin
-        exit(MicrosoftFaceAPIConnector.DetectFaceInUrlSource(ImageUrl));
-    end;
-
-    local procedure AnnotateImageFromCameraSource(): Text;
-    var
-        MicrosoftFaceAPIConnector: Codeunit "Microsoft Face API Connector";
-    begin
-
     end;
 
     local procedure ValidateImageSourceOption();

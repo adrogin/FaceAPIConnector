@@ -4,7 +4,7 @@ page 50101 "Microsoft Face API Setup"
     SourceTable = "Microsoft Face API Setup";
     InsertAllowed = false;
     DeleteAllowed = false;
-    
+
     ApplicationArea = All;
     UsageCategory = Administration;
 
@@ -14,16 +14,28 @@ page 50101 "Microsoft Face API Setup"
         {
             group(ConnectionSettings)
             {
-                field(BaseUrl;"Base Url") { }
-                field(Location;Location) { }
-                field(SubscriptionKey;"Subscription Key") { }
-                field(Method;Method) { }
-                field("Attributes Token";"Attributes Token") { }
+                field(BaseUrl; "Base Url") { }
+                field(Location; Location) { }
+                field(SubscriptionKey; "Subscription Key") { }
+                field(Method; Method) { }
+                field("Attributes Token"; "Attributes Token") { }
             }
 
             part(AttributesSubPage; "Microsoft Face API Setup Attr.")
             {
                 Caption = 'Attributes';
+            }
+        }
+    }
+
+    actions
+    {
+        area(Processing)
+        {
+            action(Setup)
+            {
+                Caption = 'Initialize Setup';
+                RunObject = codeunit "Init. MS Face API Setup";
             }
         }
     }
