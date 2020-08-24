@@ -2,22 +2,162 @@ codeunit 50101 "Microsoft Face API Connector"
 {
     var
         FaceNotFoundErr: TextConst ENU = 'Could not detect face in the image';
+        HttpStatusCodeTok: Label 'statusCode';
+        BCUserAgentTok: Label 'Dynamics 365 BC';
+        HttpRequestFailedErr: Label 'HTTP request failed';
 
-    procedure AddFaceToGroup();
+    procedure CreatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text; RecognitionModel: Text): Text
+    var
+        AlHttpClient: HttpClient;
+        MsgContent: HttpContent;
+        ResponseMsg: HttpResponseMessage;
+        JsonBody: JsonObject;
+        TextBody: Text;
+        RequestUrl: Text;
+        EndpointUri: Text;
     begin
+        PrepareRequestHeaders(AlHttpClient, MsgContent, 'application/json');
 
+        EndpointUri := 'persongroups/%1';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
+        JsonBody.Add('name', GroupId);
+        JsonBody.Add('userData', DisplayName);
+        JsonBody.Add('recognitionModel', RecognitionModel);
+        JsonBody.WriteTo(TextBody);
+
+        MsgContent.WriteFrom(TextBody);
+        if not AlHttpClient.Put(RequestUrl, MsgContent, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        exit(SerializeResponseMessage(ResponseMsg));
+    end;
+
+    procedure DeletePersonGroup(GroupId: Text[64]): Text
+    var
+        MicrosoftFaceApiSetup: Record "Microsoft Face API Setup";
+        AlHttpClient: HttpClient;
+        ResponseMsg: HttpResponseMessage;
+        RequestUrl: Text;
+        EndpointUri: Text;
+    begin
+        MicrosoftFaceAPISetup.Get();
+        AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
+        AlHttpClient.DefaultRequestHeaders.Add('Ocp-Apim-Subscription-Key', MicrosoftFaceAPISetup."Subscription Key");
+
+        EndpointUri := 'persongroups/%1';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
+
+        if not AlHttpClient.Delete(RequestUrl, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        exit(SerializeResponseMessage(ResponseMsg));
+    end;
+
+    procedure UpdatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text): Text
+    var
+        AlHttpClient: HttpClient;
+        MsgContent: HttpContent;
+        RequestMessage: HttpRequestMessage;
+        ResponseMsg: HttpResponseMessage;
+        JsonBody: JsonObject;
+        TextBody: Text;
+        RequestUrl: Text;
+        EndpointUri: Text;
+    begin
+        PrepareRequestHeaders(AlHttpClient, MsgContent, 'application/json');
+
+        EndpointUri := 'persongroups/%1';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
+        JsonBody.Add('name', GroupId);
+        JsonBody.Add('userData', DisplayName);
+        JsonBody.WriteTo(TextBody);
+
+        MsgContent.WriteFrom(TextBody);
+
+        RequestMessage.Content(MsgContent);
+        RequestMessage.Method('PATCH');
+        RequestMessage.SetRequestUri(RequestUrl);
+        if not AlHttpClient.Send(RequestMessage, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        exit(SerializeResponseMessage(ResponseMsg));
+    end;
+
+    procedure CreatePersonInGroup(GroupId: Text[64]; PersonName: Text[128]; AddInfo: Text; var ResponseString: Text): Boolean
+    var
+        AlHttpCLient: HttpClient;
+        MsgContent: HttpContent;
+        ResponseMsg: HttpResponseMessage;
+        JsonBody: JsonObject;
+        Token: JsonToken;
+        TextBody: Text;
+        RequestUrl: Text;
+        EndpointUri: Text;
+    begin
+        PrepareRequestHeaders(AlHttpCLient, MsgContent, 'application/json');
+
+        EndpointUri := 'persongroups/%1/persons';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
+
+        JsonBody.Add('name', PersonName);
+        JsonBody.Add('userData', AddInfo);
+        JsonBody.WriteTo(TextBody);
+        MsgContent.WriteFrom(TextBody);
+
+        if not AlHttpClient.Post(RequestUrl, MsgContent, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        if ResponseMsg.HttpStatusCode = 200 then
+            exit(GetJsonObjectValue(ResponseMsg, ResponseString, 'personId'));
+
+        ResponseMsg.Content.ReadAs(ResponseString);
+        JsonBody.ReadFrom(ResponseString);
+        if JsonBody.Get('error', Token) then
+            Token.WriteTo(ResponseString);
+
+        exit(false);
+    end;
+
+    procedure AddFaceToGroup(GroupId: Text[64]; PersonId: Text; var ContentStream: InStream; ResponseString: Text): Boolean
+    var
+        ALHttpCLient: HttpClient;
+        MsgContent: HttpContent;
+        ResponseMsg: HttpResponseMessage;
+        RequestUrl: Text;
+        EndpointUri: Text;
+    begin
+        PrepareRequestHeaders(ALHttpCLient, MsgContent, 'application/octet-stream');
+
+        // https://{endpoint}/face/v1.0/persongroups/{personGroupId}/persons/{personId}/persistedFaces[?userData][&targetFace][&detectionModel]
+        EndpointUri := 'persongroups/%1/persons/%2/persistedFaces';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId, PersonId));
+        MsgContent.WriteFrom(ContentStream);
+
+        if not AlHttpClient.Post(RequestUrl, MsgContent, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        if ResponseMsg.HttpStatusCode = 200 then
+            exit(GetJsonObjectValue(ResponseMsg, ResponseString, 'persistedFaceId'));
+
+        ResponseMsg.Content.ReadAs(ResponseString);
+        exit(false)
     end;
 
     procedure DeleteFaceFromGroup();
+    var
+        MicrosoftFaceAPISetup: Record "Microsoft Face API Setup";
+        AlHttpClient: HttpClient;
     begin
-
+        MicrosoftFaceAPISetup.Get();
+        AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
+        //SetContentHeaders(MsgContent, ContentType, MicrosoftFaceAPISetup."Subscription Key");
     end;
 
-    procedure DetectFaceInBlobSource(Image: Record TempBlob): Text;
+    procedure DetectFaceInBlobSource(TempBlob: Record TempBlob): Text;
     var
         ImageStream: InStream;
     begin
-        Image.Blob.CreateInStream(ImageStream);
+        TempBlob.Blob.CreateInStream(ImageStream);
         exit(DetectFace('application/octet-stream', ImageStream));
     end;
 
@@ -39,27 +179,78 @@ codeunit 50101 "Microsoft Face API Connector"
 
     local procedure DetectFace(ContentType: Text; ContentStream: InStream): Text;
     var
-        MicrosoftFaceAPISetup: Record "Microsoft Face API Setup";
         AlHttpClient: HttpClient;
         MsgContent: HttpContent;
         ResponseMsg: HttpResponseMessage;
         RequestUrl: Text;
-        JsonString: Text;
+        EndpointUri: Text;
+        ResponseString: Text;
     begin
-        MicrosoftFaceAPISetup.get;
+        PrepareRequestHeaders(AlHttpClient, MsgContent, ContentType);
 
-        RequestUrl := StrSubstNo('https://%1.%2', MicrosoftFaceAPISetup.Location, MicrosoftFaceAPISetup."Base Url");
-        AlHttpClient.DefaultRequestHeaders.Add('User-Agent', 'Dynamics 365 BC');
-        SetContentHeaders(MsgContent, ContentType, MicrosoftFaceAPISetup."Subscription Key");
-
-        RequestUrl := ConcatenateUrl(RequestUrl, MicrosoftFaceAPISetup.Method) + '?returnFaceAttributes=' + GetAttributesString;
+        // detect = MicrosoftFaceAPISetup.Method
+        EndpointUri := 'detect?returnFaceAttributes=%1';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GetAttributesString));
         MsgContent.WriteFrom(ContentStream);
 
         if not AlHttpClient.Post(RequestUrl, MsgContent, ResponseMsg) then
-            Error('HTTP request failed');
+            Error(HttpRequestFailedErr);
 
-        ResponseMsg.Content.ReadAs(JsonString);
-        exit(JsonString)
+        ResponseMsg.Content.ReadAs(ResponseString);
+        exit(ResponseString)
+    end;
+
+    local procedure SerializeResponseMessage(var ResponseMsg: HttpResponseMessage): Text
+    var
+        ResponseString: Text;
+        ContentBody: JsonObject;
+        ResponseArray: JsonArray;
+        HttpStatus: JsonObject;
+    begin
+        ResponseMsg.Content.ReadAs(ResponseString);
+        ContentBody.ReadFrom(ResponseString);
+
+        HttpStatus.Add(HttpStatusCodeTok, ResponseMsg.HttpStatusCode);
+
+        ResponseArray.Add(HttpStatus);
+        ResponseArray.Add(ContentBody);
+        ResponseArray.WriteTo(ResponseString);
+
+        exit(ResponseString);
+    end;
+
+    local procedure GetJsonObjectValue(var ResponseMessage: HttpResponseMessage; var ResponseString: Text; KeyName: Text): Boolean
+    var
+        MsgString: Text;
+        JsonMsg: JsonObject;
+        Token: JsonToken;
+    begin
+        ResponseMessage.Content.ReadAs(MsgString);
+        if not JsonMsg.ReadFrom(MsgString) then
+            exit(false);
+
+        if not JsonMsg.Get(KeyName, Token) then
+            exit(false);
+
+        ResponseString := Token.AsValue().AsText();
+        exit(true);
+    end;
+
+    local procedure PrepareRequestHeaders(var AlHttpClient: HttpClient; var MsgContent: HttpContent; ContentType: Text)
+    var
+        MicrosoftFaceAPISetup: Record "Microsoft Face API Setup";
+    begin
+        MicrosoftFaceAPISetup.Get();
+        AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
+        SetContentHeaders(MsgContent, ContentType, MicrosoftFaceAPISetup."Subscription Key");
+    end;
+
+    local procedure GetBaseRequestUrl(): Text
+    var
+        MicrosoftFaceAPISetup: Record "Microsoft Face API Setup";
+    begin
+        MicrosoftFaceAPISetup.Get();
+        exit(StrSubstNo('https://%1.%2', MicrosoftFaceAPISetup.Location, MicrosoftFaceAPISetup."Base Url"));
     end;
 
     local procedure SetContentHeaders(var MsgContent: HttpContent; ContentType: Text; SubscriptionKey: Text);
