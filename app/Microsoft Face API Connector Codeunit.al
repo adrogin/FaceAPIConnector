@@ -153,31 +153,50 @@ codeunit 50101 "Microsoft Face API Connector"
         //SetContentHeaders(MsgContent, ContentType, MicrosoftFaceAPISetup."Subscription Key");
     end;
 
-    procedure DetectFaceInBlobSource(TempBlob: Record TempBlob): Text;
+    procedure DetectFaceInFileSource(): Text
+    var
+        TempBlob: Codeunit "Temp Blob";
+        FileMgt: Codeunit "File Management";
+    begin
+        FileMgt.BLOBImport(TempBlob, '');
+        exit(DetectFaceInBlobSource(TempBlob));
+    end;
+
+    procedure DetectFaceInBlobSource(var TempBlobImage: Codeunit "Temp Blob"): Text
     var
         ImageStream: InStream;
     begin
-        TempBlob.Blob.CreateInStream(ImageStream);
+        TempBlobImage.CreateInStream(ImageStream);
         exit(DetectFace('application/octet-stream', ImageStream));
     end;
 
-    procedure DetectFaceInUrlSource(Url: Text): Text;
+    procedure DetectFaceInCameraSource(): Text
+    var
+        CameraInteraction: Page "Camera Interaction";
+        PictureStream: InStream;
+    begin
+        CameraInteraction.RunModal();
+        if CameraInteraction.GetPicture(PictureStream) then
+            exit(DetectFace('application/octet-stream', PictureStream));
+    end;
+
+    procedure DetectFaceInUrlSource(Url: Text): Text
     var
         JObj: JsonObject;
         OutStr: OutStream;
         InStr: InStream;
-        TempBlob: Record TempBlob;
+        TempBlob: Codeunit "Temp Blob";
     begin
         // Wrap the URL in a JSon object and send the JSon content to an InStream
         JObj.Add('url', Url);
-        TempBlob.Blob.CreateOutStream(OutStr);
+        TempBlob.CreateOutStream(OutStr);
         JObj.WriteTo(OutStr);
 
-        TempBlob.Blob.CreateInStream(InStr);
+        TempBlob.CreateInStream(InStr);
         exit(DetectFace('application/json', InStr));
     end;
 
-    local procedure DetectFace(ContentType: Text; ContentStream: InStream): Text;
+    local procedure DetectFace(ContentType: Text; ContentStream: InStream): Text
     var
         AlHttpClient: HttpClient;
         MsgContent: HttpContent;
