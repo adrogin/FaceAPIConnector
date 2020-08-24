@@ -19,11 +19,11 @@ codeunit 50102 "Init. MS Face API Setup"
 
         MicrosoftFaceAPISetup."Base Url" := 'api.cognitive.microsoft.com/face/v1.0';
         MicrosoftFaceAPISetup.Location := 'westeurope';
-        MicrosoftFaceAPISetup."Subscription Key" := 'aad3f6327d7b470a884d293ccf0512d6';
+        MicrosoftFaceAPISetup."Subscription Key" := '';
         MicrosoftFaceAPISetup.Method := 'detect';
         MicrosoftFaceAPISetup."Attributes Token" := 'faceAttributes';
 
-        MicrosoftFaceAPISetup.Insert;        
+        MicrosoftFaceAPISetup.Insert;
     end;
 
     local procedure InitAttributes();
