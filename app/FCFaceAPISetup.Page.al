@@ -1,7 +1,7 @@
-page 50101 "Microsoft Face API Setup"
+page 50101 "FC Face API Setup"
 {
     PageType = Card;
-    SourceTable = "Microsoft Face API Setup";
+    SourceTable = "FC Face API Setup";
     InsertAllowed = false;
     DeleteAllowed = false;
 
@@ -21,7 +21,7 @@ page 50101 "Microsoft Face API Setup"
                 field("Attributes Token"; "Attributes Token") { }
             }
 
-            part(AttributesSubPage; "Microsoft Face API Setup Attr.")
+            part(AttributesSubPage; "FC Face API Setup Attr.")
             {
                 Caption = 'Attributes';
             }
@@ -35,7 +35,9 @@ page 50101 "Microsoft Face API Setup"
             action(Setup)
             {
                 Caption = 'Initialize Setup';
-                RunObject = codeunit "Init. MS Face API Setup";
+                RunObject = codeunit "FC Init Face API Setup";
+                ToolTip = 'Reset API connection settings to default values.';
+                Image = Default;
             }
         }
     }

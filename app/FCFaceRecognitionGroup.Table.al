@@ -1,4 +1,4 @@
-table 50102 "Face Recognition Group"
+table 50102 "FC Face Recognition Group"
 {
     DataClassification = CustomerContent;
 
@@ -6,23 +6,19 @@ table 50102 "Face Recognition Group"
     {
         field(1; "Group Id"; Text[64])
         {
-            DataClassification = CustomerContent;
             Caption = 'Group Id';
         }
         field(2; Name; Text[128])
         {
-            DataClassification = CustomerContent;
             Caption = 'Name';
         }
         field(3; Synchronized; Boolean)
         {
-            DataClassification = CustomerContent;
             Caption = 'Synchronized';
             Editable = false;
         }
-        field(4; State; Enum "Recognition Group State")
+        field(4; State; Enum "FC Recognition Group State")
         {
-            DataClassification = CustomerContent;
             Caption = 'State';
             Editable = false;
         }
@@ -52,5 +48,5 @@ table 50102 "Face Recognition Group"
     end;
 
     var
-        FaceRecognitionMgt: Codeunit "Face Recognition Mgt.";
+        FaceRecognitionMgt: Codeunit "FC Face Recognition Mgt.";
 }

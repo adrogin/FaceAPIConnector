@@ -1,6 +1,6 @@
-codeunit 50104 "Face Recognition Mgt."
+codeunit 50104 "FC Face Recognition Mgt."
 {
-    procedure CreatePersonGroup(var FaceRecognitionGroup: Record "Face Recognition Group")
+    procedure CreatePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
     var
         ResponseString: Text;
     begin
@@ -15,7 +15,7 @@ codeunit 50104 "Face Recognition Mgt."
         FaceRecognitionGroup.Modify(true);
     end;
 
-    procedure UpdatePersonGroup(var FaceRecognitionGroup: Record "Face Recognition Group")
+    procedure UpdatePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
     ResponseString: Text;
     begin
         if FaceRecognitionGroup."Group Id" = '' then
@@ -29,7 +29,7 @@ codeunit 50104 "Face Recognition Mgt."
         FaceRecognitionGroup.Modify(true);
     end;
 
-    procedure DeletePersonGroup(var FaceRecognitionGroup: Record "Face Recognition Group")
+    procedure DeletePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
     var
         ResponseString: Text;
     begin
@@ -52,7 +52,6 @@ codeunit 50104 "Face Recognition Mgt."
     var
         ResponseArray: JsonArray;
         Token: JsonToken;
-        StatusCode: Integer;
     begin
         ResponseArray.ReadFrom(ServiceResponseString);
         if not ResponseArray.Get(ItemNo, Token) then
@@ -65,7 +64,7 @@ codeunit 50104 "Face Recognition Mgt."
     end;
 
     var
-        FaceApiConnector: Codeunit "Microsoft Face API Connector";
+        FaceApiConnector: Codeunit "FC Face API Connector";
         DefaultRecognitionModelTok: Label 'recognition_03';
         HttpStatusCodeTok: Label 'statusCode';
         HttpErrorTok: Label 'error';

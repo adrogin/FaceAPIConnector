@@ -1,9 +1,9 @@
-page 50104 "Face Recognition Groups"
+page 50104 "FC Face Recognition Groups"
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "Face Recognition Group";
+    SourceTable = "FC Face Recognition Group";
     DelayedInsert = true;
 
     layout

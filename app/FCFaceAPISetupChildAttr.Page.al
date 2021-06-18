@@ -1,8 +1,7 @@
-page 50102 "Microsoft Face API Setup Attr."
+page 50103 "FC Face API Setup Child Attr."
 {
-    PageType = ListPart;
-    SourceTable = "Microsoft Face API Setup Attr.";
-    SourceTableView = where ("Parent Attribute" = const(0));
+    PageType = List;
+    SourceTable = "FC Face API Setup Attr.";
     ShowFilter = false;
 
     layout
@@ -11,18 +10,16 @@ page 50102 "Microsoft Face API Setup Attr."
         {
             repeater(Group)
             {
-                field(Name;Name) { }
+                field(Name; Name) { }
 
-                field(Enabled;Enabled) { }
-
-                field(ChildAttributes;ChildAttributes)
+                field(ChildAttributes; ChildAttributes)
                 {
                     Caption = 'Child attributes';
                     Editable = false;
 
                     trigger OnAssistEdit();
                     var
-                        APISetupMgt: Codeunit "API Setup Mgt.";
+                        APISetupMgt: Codeunit "FC API Setup Mgt.";
                     begin
                         APISetupMgt.OpenChildAttributesList(id);
                     end;
@@ -33,16 +30,23 @@ page 50102 "Microsoft Face API Setup Attr."
 
     trigger OnAfterGetRecord();
     var
-        APISetupMgt: Codeunit "API Setup Mgt.";
+        APISetupMgt: Codeunit "FC API Setup Mgt.";
     begin
         ChildAttributes := APISetupMgt.FormatChildAttributesOutput(id);
     end;
 
-    trigger OnNewRecord(BelowxRec : Boolean);
+    trigger OnNewRecord(BelowxRec: Boolean);
     begin
         ChildAttributes := '';
+        "Parent Attribute" := ParentAttrId;
+    end;
+
+    procedure SetParentAttributeId(NewParentAttrId: Integer)
+    begin
+        ParentAttrId := NewParentAttrId;
     end;
 
     var
+        ParentAttrId: Integer;
         ChildAttributes: Text;
 }

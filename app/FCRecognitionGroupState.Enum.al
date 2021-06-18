@@ -1,4 +1,4 @@
-enum 50100 "Recognition Group State"
+enum 50100 "FC Recognition Group State"
 {
     Extensible = true;
 
