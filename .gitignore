@@ -1,3 +1,8 @@
-.vscode/
-.alpackages/
 *.app
+*.flf
+*/.vscode/rad.json
+.output
+.alPackages
+.alcache
+.altemplates
+launch.json
