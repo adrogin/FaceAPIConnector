@@ -22,6 +22,7 @@ codeunit 50102 "FC Init Face API Setup"
         FaceAPISetup."Subscription Key" := '';
         FaceAPISetup.Method := 'detect';
         FaceAPISetup."Attributes Token" := 'faceAttributes';
+        FaceAPISetup."Default Recognition Model" := 'recognition_04';
 
         FaceAPISetup.Insert(true);
     end;

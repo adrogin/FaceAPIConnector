@@ -14,11 +14,12 @@ page 50101 "FC Face API Setup"
         {
             group(ConnectionSettings)
             {
-                field(BaseUrl; "Base Url") { }
-                field(Location; Location) { }
-                field(SubscriptionKey; "Subscription Key") { }
-                field(Method; Method) { }
-                field("Attributes Token"; "Attributes Token") { }
+                field(BaseUrl; Rec."Base Url") { }
+                field(Location; Rec.Location) { }
+                field(SubscriptionKey; Rec."Subscription Key") { }
+                field(Method; Rec.Method) { }
+                field("Attributes Token"; Rec."Attributes Token") { }
+                field("Default Recognition Model"; Rec."Default Recognition Model") { }
             }
 
             part(AttributesSubPage; "FC Face API Setup Attr.")

@@ -1,6 +1,6 @@
 codeunit 50101 "FC Face API Connector"
 {
-    procedure CreatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text; RecognitionModel: Text): Text
+    procedure CreatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text; RecognitionModel: Text): HttpResponseMessage
     var
         AlHttpClient: HttpClient;
         MsgContent: HttpContent;
@@ -10,44 +10,74 @@ codeunit 50101 "FC Face API Connector"
         RequestUrl: Text;
         EndpointUri: Text;
     begin
-        PrepareRequestHeaders(AlHttpClient, MsgContent, 'application/json');
-
         EndpointUri := 'persongroups/%1';
         RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
-        JsonBody.Add('name', GroupId);
-        JsonBody.Add('userData', DisplayName);
+        JsonBody.Add('name', DisplayName);
+        // TODO: Not supported for now, to add user comments
+        // JsonBody.Add('userData', DisplayName);
         JsonBody.Add('recognitionModel', RecognitionModel);
         JsonBody.WriteTo(TextBody);
 
         MsgContent.WriteFrom(TextBody);
+        PrepareRequestHeaders(AlHttpClient, MsgContent, 'application/json');
         if not AlHttpClient.Put(RequestUrl, MsgContent, ResponseMsg) then
             Error(HttpRequestFailedErr);
 
-        exit(SerializeResponseMessage(ResponseMsg));
+        exit(ResponseMsg);
     end;
 
-    procedure DeletePersonGroup(GroupId: Text[64]): Text
+    procedure DeletePersonGroup(GroupId: Text[64]): HttpResponseMessage
     var
-        FaceApiSetup: Record "FC Face API Setup";
         AlHttpClient: HttpClient;
         ResponseMsg: HttpResponseMessage;
         RequestUrl: Text;
         EndpointUri: Text;
     begin
-        FaceAPISetup.Get();
-        AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
-        AlHttpClient.DefaultRequestHeaders.Add('Ocp-Apim-Subscription-Key', FaceAPISetup."Subscription Key");
-
+        SetDefaultRequestHeaders(AlHttpClient);
         EndpointUri := 'persongroups/%1';
         RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
 
         if not AlHttpClient.Delete(RequestUrl, ResponseMsg) then
             Error(HttpRequestFailedErr);
 
-        exit(SerializeResponseMessage(ResponseMsg));
+        exit(ResponseMsg);
     end;
 
-    procedure UpdatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text): Text
+    procedure GetPersonGroupList(): HttpResponseMessage
+    var
+        AlHttpClient: HttpClient;
+        ResponseMsg: HttpResponseMessage;
+        RequestUrl: Text;
+        EndpointUri: Text;
+    begin
+        SetDefaultRequestHeaders(AlHttpClient);
+        EndpointUri := 'persongroups?returnRecognitionModel=true';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), EndpointUri);
+
+        if not AlHttpClient.Get(RequestUrl, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        exit(ResponseMsg);
+    end;
+
+    procedure GetPersonGroupTrainingStatus(GroupId: Text): HttpResponseMessage
+    var
+        ALHttpClient: HttpClient;
+        ResponseMsg: HttpResponseMessage;
+        EndpointUri: Text;
+        RequestUrl: Text;
+    begin
+        SetDefaultRequestHeaders(AlHttpClient);
+        EndpointUri := 'persongroups/%1/training';
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
+
+        if not AlHttpClient.Get(RequestUrl, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+
+        exit(ResponseMsg);
+    end;
+
+    procedure UpdatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text): HttpResponseMessage
     var
         AlHttpClient: HttpClient;
         MsgContent: HttpContent;
@@ -74,7 +104,7 @@ codeunit 50101 "FC Face API Connector"
         if not AlHttpClient.Send(RequestMessage, ResponseMsg) then
             Error(HttpRequestFailedErr);
 
-        exit(SerializeResponseMessage(ResponseMsg));
+        exit(ResponseMsg);
     end;
 
     procedure CreatePersonInGroup(GroupId: Text[64]; PersonName: Text[128]; AddInfo: Text; var ResponseString: Text): Boolean
@@ -214,25 +244,6 @@ codeunit 50101 "FC Face API Connector"
         exit(ResponseString)
     end;
 
-    local procedure SerializeResponseMessage(var ResponseMsg: HttpResponseMessage): Text
-    var
-        ResponseString: Text;
-        ContentBody: JsonObject;
-        ResponseArray: JsonArray;
-        HttpStatus: JsonObject;
-    begin
-        ResponseMsg.Content.ReadAs(ResponseString);
-        ContentBody.ReadFrom(ResponseString);
-
-        HttpStatus.Add(HttpStatusCodeTok, ResponseMsg.HttpStatusCode);
-
-        ResponseArray.Add(HttpStatus);
-        ResponseArray.Add(ContentBody);
-        ResponseArray.WriteTo(ResponseString);
-
-        exit(ResponseString);
-    end;
-
     local procedure GetJsonObjectValue(var ResponseMessage: HttpResponseMessage; var ResponseString: Text; KeyName: Text): Boolean
     var
         MsgString: Text;
@@ -251,12 +262,18 @@ codeunit 50101 "FC Face API Connector"
     end;
 
     local procedure PrepareRequestHeaders(var AlHttpClient: HttpClient; var MsgContent: HttpContent; ContentType: Text)
+    begin
+        SetDefaultRequestHeaders(AlHttpClient);
+        SetContentHeaders(MsgContent, ContentType);
+    end;
+
+    local procedure SetDefaultRequestHeaders(var AlHttpClient: HttpClient)
     var
-        FaceAPISetup: Record "FC Face API Setup";
+        FaceApiSetup: Record "FC Face API Setup";
     begin
         FaceAPISetup.Get();
         AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
-        SetContentHeaders(MsgContent, ContentType, FaceAPISetup."Subscription Key");
+        AlHttpClient.DefaultRequestHeaders.Add('Ocp-Apim-Subscription-Key', FaceAPISetup."Subscription Key");
     end;
 
     local procedure GetBaseRequestUrl(): Text
@@ -268,14 +285,13 @@ codeunit 50101 "FC Face API Connector"
         exit(StrSubstNo(UriFormatTok, FaceAPISetup.Location, FaceAPISetup."Base Url"));
     end;
 
-    local procedure SetContentHeaders(var MsgContent: HttpContent; ContentType: Text; SubscriptionKey: Text);
+    local procedure SetContentHeaders(var MsgContent: HttpContent; ContentType: Text);
     var
         MsgHeaders: HttpHeaders;
     begin
         MsgContent.GetHeaders(MsgHeaders);
         MsgHeaders.Clear();
         MsgHeaders.Add('Content-Type', ContentType);
-        MsgHeaders.Add('Ocp-Apim-Subscription-Key', SubscriptionKey);
     end;
 
     local procedure ConcatenateUrl(BaseUrl: Text; ResourceName: Text): Text;
@@ -396,9 +412,16 @@ codeunit 50101 "FC Face API Connector"
             until APISetupAttr.Next() = 0;
     end;
 
+    procedure GetDefaultRecognitionModel(): Text
+    var
+        FaceAPISetup: Record "FC Face API Setup";
+    begin
+        FaceAPISetup.Get();
+        exit(FaceAPISetup."Default Recognition Model");
+    end;
+
     var
         FaceNotFoundErr: TextConst ENU = 'Could not detect face in the image';
-        HttpStatusCodeTok: Label 'statusCode';
         BCUserAgentTok: Label 'Dynamics 365 BC';
         HttpRequestFailedErr: Label 'HTTP request failed';
 }

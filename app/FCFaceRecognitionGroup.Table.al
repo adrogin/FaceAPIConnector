@@ -4,7 +4,7 @@ table 50102 "FC Face Recognition Group"
 
     fields
     {
-        field(1; "Group Id"; Text[64])
+        field(1; ID; Text[64])
         {
             Caption = 'Group Id';
         }
@@ -12,21 +12,31 @@ table 50102 "FC Face Recognition Group"
         {
             Caption = 'Name';
         }
-        field(3; Synchronized; Boolean)
+        field(3; "Recognition Model"; Text[100])
+        {
+            Caption = 'Recognition Model';
+        }
+        field(4; Synchronized; Boolean)
         {
             Caption = 'Synchronized';
             Editable = false;
         }
-        field(4; State; Enum "FC Recognition Group State")
+        field(5; Status; Enum "FC Recognition Group Status")
         {
-            Caption = 'State';
+            Caption = 'Status';
             Editable = false;
+        }
+        field(6; "Error Message"; Text[250])
+        {
+            Caption = 'Error Message';
+            Editable = false;
+            Description = 'Error message returned by the training model if the training failed. Populated when the training status = failed.';
         }
     }
 
     keys
     {
-        key(PK; "Group Id")
+        key(PK; ID)
         {
             Clustered = true;
         }
@@ -34,6 +44,8 @@ table 50102 "FC Face Recognition Group"
 
     trigger OnInsert()
     begin
+        if Rec."Recognition Model" = '' then
+            Rec.Validate("Recognition Model", FaceRecognitionMgt.GetDefaultRecognitionModel());
         FaceRecognitionMgt.CreatePersonGroup(Rec);
     end;
 
