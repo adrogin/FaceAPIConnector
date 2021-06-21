@@ -1,36 +1,37 @@
-codeunit 50102 "Init. MS Face API Setup"
+codeunit 50102 "FC Init Face API Setup"
 {
     trigger OnRun();
     begin
-        InitSetup;
+        InitSetup();
     end;
 
     local procedure InitSetup();
     begin
-        InitConectionSettings;
-        InitAttributes;
+        InitConectionSettings();
+        InitAttributes();
     end;
 
     local procedure InitConectionSettings()
     var
-        MicrosoftFaceAPISetup: Record "Microsoft Face API Setup";
+        FaceAPISetup: Record "FC Face API Setup";
     begin
-        MicrosoftFaceAPISetup.DeleteAll;
+        FaceAPISetup.DeleteAll();
 
-        MicrosoftFaceAPISetup."Base Url" := 'api.cognitive.microsoft.com/face/v1.0';
-        MicrosoftFaceAPISetup.Location := 'westeurope';
-        MicrosoftFaceAPISetup."Subscription Key" := '';
-        MicrosoftFaceAPISetup.Method := 'detect';
-        MicrosoftFaceAPISetup."Attributes Token" := 'faceAttributes';
+        FaceAPISetup."Base Url" := 'api.cognitive.microsoft.com/face/v1.0';
+        FaceAPISetup.Location := 'westeurope';
+        FaceAPISetup."Subscription Key" := '';
+        FaceAPISetup.Method := 'detect';
+        FaceAPISetup."Attributes Token" := 'faceAttributes';
+        FaceAPISetup."Default Recognition Model" := 'recognition_04';
 
-        MicrosoftFaceAPISetup.Insert;
+        FaceAPISetup.Insert(true);
     end;
 
     local procedure InitAttributes();
     var
-        MicrosoftFaceAPISetupAttr: Record "Microsoft Face API Setup Attr.";
+        MicrosoftFaceAPISetupAttr: Record "FC Face API Setup Attr.";
     begin
-        MicrosoftFaceAPISetupAttr.DeleteAll;
+        MicrosoftFaceAPISetupAttr.DeleteAll();
         InsertAttribute('age', true);
         InsertAttribute('gender', true);
         InsertAttribute('smile', true);
@@ -92,25 +93,25 @@ codeunit 50102 "Init. MS Face API Setup"
 
     local procedure InsertAttribute(AttrName: Text[50]; IsEnabled: Boolean);
     var
-        MicrosoftFaceAPISetupAttr: Record "Microsoft Face API Setup Attr.";
+        FaceAPISetupAttr: Record "FC Face API Setup Attr.";
     begin
-        MicrosoftFaceAPISetupAttr.Name := AttrName;
-        MicrosoftFaceAPISetupAttr.Enabled := IsEnabled;
-        MicrosoftFaceAPISetupAttr.Insert;
+        FaceAPISetupAttr.Name := AttrName;
+        FaceAPISetupAttr.Enabled := IsEnabled;
+        FaceAPISetupAttr.Insert(true);
     end;
 
     local procedure InsertChildAttribute(ParentAttrName: Text[50]; AttrName: Text[50]);
     var
-        MicrosoftFaceAPISetupAttr: Record "Microsoft Face API Setup Attr.";
+        FaceAPISetupAttr: Record "FC Face API Setup Attr.";
         ParentId: Integer;
     begin
-        MicrosoftFaceAPISetupAttr.SetRange(Name, ParentAttrName);
-        MicrosoftFaceAPISetupAttr.FindFirst;
-        ParentId := MicrosoftFaceAPISetupAttr.id;
+        FaceAPISetupAttr.SetRange(Name, ParentAttrName);
+        FaceAPISetupAttr.FindFirst();
+        ParentId := FaceAPISetupAttr.id;
 
-        Clear(MicrosoftFaceAPISetupAttr);
-        MicrosoftFaceAPISetupAttr.Name := AttrName;
-        MicrosoftFaceAPISetupAttr."Parent Attribute" := ParentId;
-        MicrosoftFaceAPISetupAttr.Insert;
+        Clear(FaceAPISetupAttr);
+        FaceAPISetupAttr.Validate(Name, AttrName);
+        FaceAPISetupAttr.Validate("Parent Attribute", ParentId);
+        FaceAPISetupAttr.Insert(true);
     end;
 }

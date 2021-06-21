@@ -1,21 +1,21 @@
-codeunit 50103 "API Setup Mgt."
+codeunit 50103 "FC API Setup Mgt."
 {
     procedure FormatChildAttributesOutput(ParentAttrId: Integer) ChildAttributes: Text;
     var
-        APISetupAttr: Record "Microsoft Face API Setup Attr.";
+        APISetupAttr: Record "FC Face API Setup Attr.";
     begin
         APISetupAttr.SetRange("Parent Attribute", ParentAttrId);
-        if APISetupAttr.FindSet then begin
+        if APISetupAttr.FindSet() then begin
             ChildAttributes := APISetupAttr.Name;
-            while APISetupAttr.Next > 0 do
+            while APISetupAttr.Next() > 0 do
                 ChildAttributes := ChildAttributes + ', ' + APISetupAttr.Name;
         end;
     end;
 
     procedure OpenChildAttributesList(ParentAttrId: Integer);
     var
-        APISetupAttr: Record "Microsoft Face API Setup Attr.";
-        APISetupChildAttr: Page "MS Face API Setup Child Attr.";
+        APISetupAttr: Record "FC Face API Setup Attr.";
+        APISetupChildAttr: Page "FC Face API Setup Child Attr.";
     begin
         if ParentAttrId = 0 then
             exit;
@@ -26,6 +26,6 @@ codeunit 50103 "API Setup Mgt."
 
         APISetupChildAttr.SetParentAttributeId(ParentAttrId);
         APISetupChildAttr.SetTableView(APISetupAttr);
-        APISetupChildAttr.RunModal;
+        APISetupChildAttr.RunModal();
     end;
 }

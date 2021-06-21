@@ -1,4 +1,4 @@
-enum 50100 "Recognition Group State"
+enum 50100 "FC Recognition Group Status"
 {
     Extensible = true;
 
@@ -6,4 +6,5 @@ enum 50100 "Recognition Group State"
     value(1; "Training Pending") { }
     value(2; "Training") { }
     value(3; Trained) { }
+    value(4; Failed) { }
 }

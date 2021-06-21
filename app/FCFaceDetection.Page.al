@@ -1,10 +1,11 @@
-page 50100 "Face Detection"
+page 50100 "FC Face Detection"
 {
     PageType = Worksheet;
     SourceTable = "Name/Value Buffer";
     SourceTableTemporary = true;
     ApplicationArea = All;
     UsageCategory = Tasks;
+    Caption = 'Face Detection';
 
     layout
     {
@@ -44,7 +45,7 @@ page 50100 "Face Detection"
 
                 trigger OnAction();
                 begin
-                    AnnotateImage;
+                    AnnotateImage();
                 end;
             }
         }
@@ -58,7 +59,7 @@ page 50100 "Face Detection"
 
     local procedure AnnotateImage();
     var
-        FaceAPIConnector: codeunit "Microsoft Face API Connector";
+        FaceAPIConnector: codeunit "FC Face API Connector";
         Response: Text;
     begin
         case ImageSource of
