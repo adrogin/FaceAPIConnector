@@ -59,16 +59,17 @@ page 50100 "FC Face Detection"
 
     local procedure AnnotateImage();
     var
-        FaceAPIConnector: codeunit "FC Face API Connector";
+        FaceRecognitionMgt: codeunit "FC Face Recognition Mgt.";
+        FaceApiConnector: Codeunit "FC Face API Connector";
         Response: Text;
     begin
         case ImageSource of
             ImageSource::"File":
-                Response := FaceAPIConnector.DetectFaceInFileSource();
+                Response := FaceRecognitionMgt.DetectFaceInFileSource();
             ImageSource::Web:
-                Response := FaceAPIConnector.DetectFaceInUrlSource(ImageUrl);
+                Response := FaceRecognitionMgt.DetectFaceInUrlSource(ImageUrl);
             ImageSource::Camera:
-                Response := FaceAPIConnector.DetectFaceInCameraSource();
+                Response := FaceRecognitionMgt.DetectFaceInCameraSource();
         end;
 
         FaceAPIConnector.GetAttributesFromResponseString(Rec, Response);

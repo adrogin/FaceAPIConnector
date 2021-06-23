@@ -1,183 +1,87 @@
 codeunit 50101 "FC Face API Connector"
 {
-    procedure CreatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text; RecognitionModel: Text): HttpResponseMessage
+    #region Person Group functions
+    procedure CreatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text; RecognitionModel: Text) ResponseMsg: HttpResponseMessage
     var
-        AlHttpClient: HttpClient;
-        MsgContent: HttpContent;
-        ResponseMsg: HttpResponseMessage;
         JsonBody: JsonObject;
-        TextBody: Text;
-        RequestUrl: Text;
-        EndpointUri: Text;
     begin
-        EndpointUri := 'persongroups/%1';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
-        JsonBody.Add('name', DisplayName);
+        JsonBody.Add('name', DisplayName.Trim());
         // TODO: Not supported for now, to add user comments
         // JsonBody.Add('userData', DisplayName);
-        JsonBody.Add('recognitionModel', RecognitionModel);
-        JsonBody.WriteTo(TextBody);
-
-        MsgContent.WriteFrom(TextBody);
-        PrepareRequestHeaders(AlHttpClient, MsgContent, 'application/json');
-        if not AlHttpClient.Put(RequestUrl, MsgContent, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        exit(ResponseMsg);
+        JsonBody.Add('recognitionModel', RecognitionModel.Trim());
+        SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId.Trim()), JsonBody, 'PUT');
     end;
 
     procedure DeletePersonGroup(GroupId: Text[64]): HttpResponseMessage
-    var
-        AlHttpClient: HttpClient;
-        ResponseMsg: HttpResponseMessage;
-        RequestUrl: Text;
-        EndpointUri: Text;
     begin
-        SetDefaultRequestHeaders(AlHttpClient);
-        EndpointUri := 'persongroups/%1';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
-
-        if not AlHttpClient.Delete(RequestUrl, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        exit(ResponseMsg);
+        exit(SendDeleteRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId)));
     end;
 
-    procedure GetPersonGroupList(): HttpResponseMessage
-    var
-        AlHttpClient: HttpClient;
-        ResponseMsg: HttpResponseMessage;
-        RequestUrl: Text;
-        EndpointUri: Text;
+    procedure GetPersonGroupList() ResponseMsg: HttpResponseMessage
     begin
-        SetDefaultRequestHeaders(AlHttpClient);
-        EndpointUri := 'persongroups?returnRecognitionModel=true';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), EndpointUri);
-
-        if not AlHttpClient.Get(RequestUrl, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        exit(ResponseMsg);
+        exit(SendGetRequest('persongroups?returnRecognitionModel=true'));
     end;
 
-    procedure GetPersonGroupTrainingStatus(GroupId: Text): HttpResponseMessage
-    var
-        ALHttpClient: HttpClient;
-        ResponseMsg: HttpResponseMessage;
-        EndpointUri: Text;
-        RequestUrl: Text;
+    procedure GetPersonGroupTrainingStatus(GroupId: Text) ResponseMsg: HttpResponseMessage
     begin
-        SetDefaultRequestHeaders(AlHttpClient);
-        EndpointUri := 'persongroups/%1/training';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
-
-        if not AlHttpClient.Get(RequestUrl, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        exit(ResponseMsg);
+        exit(SendGetRequest(StrSubstNo(PersonGroupTrainingStatusEndpointTok, GroupId)));
     end;
 
-    procedure UpdatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text): HttpResponseMessage
+    procedure UpdatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text) ResponseMsg: HttpResponseMessage
     var
-        AlHttpClient: HttpClient;
-        MsgContent: HttpContent;
-        RequestMessage: HttpRequestMessage;
-        ResponseMsg: HttpResponseMessage;
         JsonBody: JsonObject;
-        TextBody: Text;
-        RequestUrl: Text;
-        EndpointUri: Text;
     begin
-        PrepareRequestHeaders(AlHttpClient, MsgContent, 'application/json');
-
-        EndpointUri := 'persongroups/%1';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
-        JsonBody.Add('name', GroupId);
-        JsonBody.Add('userData', DisplayName);
-        JsonBody.WriteTo(TextBody);
-
-        MsgContent.WriteFrom(TextBody);
-
-        RequestMessage.Content(MsgContent);
-        RequestMessage.Method('PATCH');
-        RequestMessage.SetRequestUri(RequestUrl);
-        if not AlHttpClient.Send(RequestMessage, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        exit(ResponseMsg);
+        JsonBody.Add('name', DisplayName);
+        JsonBody.Add('userData', Description);
+        SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId), JsonBody, 'PATCH');
     end;
 
-    procedure CreatePersonInGroup(GroupId: Text[64]; PersonName: Text[128]; AddInfo: Text; var ResponseString: Text): Boolean
+    #endregion
+
+    #region PersonGroup Person functions
+
+    procedure CreatePerson(GroupId: Text[64]; PersonName: Text[128]; AddInfo: Text) ResponseMsg: HttpResponseMessage
     var
-        AlHttpCLient: HttpClient;
-        MsgContent: HttpContent;
-        ResponseMsg: HttpResponseMessage;
         JsonBody: JsonObject;
-        Token: JsonToken;
-        TextBody: Text;
-        RequestUrl: Text;
-        EndpointUri: Text;
     begin
-        PrepareRequestHeaders(AlHttpCLient, MsgContent, 'application/json');
-
-        EndpointUri := 'persongroups/%1/persons';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId));
-
         JsonBody.Add('name', PersonName);
         JsonBody.Add('userData', AddInfo);
-        JsonBody.WriteTo(TextBody);
-        MsgContent.WriteFrom(TextBody);
-
-        if not AlHttpClient.Post(RequestUrl, MsgContent, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        if ResponseMsg.HttpStatusCode = 200 then
-            exit(GetJsonObjectValue(ResponseMsg, ResponseString, 'personId'));
-
-        ResponseMsg.Content.ReadAs(ResponseString);
-        JsonBody.ReadFrom(ResponseString);
-        if JsonBody.Get('error', Token) then
-            Token.WriteTo(ResponseString);
-
-        exit(false);
+        SendHttpRequest(StrSubstNo(PersonsEndpointTok, GroupId), JsonBody, 'POST');
     end;
 
-    procedure AddFaceToGroup(GroupId: Text[64]; PersonId: Text; var ContentStream: InStream; ResponseString: Text): Boolean
-    var
-        ALHttpCLient: HttpClient;
-        MsgContent: HttpContent;
-        ResponseMsg: HttpResponseMessage;
-        RequestUrl: Text;
-        EndpointUri: Text;
+    procedure DeletePerson(GroupId: Text[64]; PersonId: Guid): HttpResponseMessage
     begin
-        PrepareRequestHeaders(ALHttpCLient, MsgContent, 'application/octet-stream');
-
-        // https://{endpoint}/face/v1.0/persongroups/{personGroupId}/persons/{personId}/persistedFaces[?userData][&targetFace][&detectionModel]
-        EndpointUri := 'persongroups/%1/persons/%2/persistedFaces';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GroupId, PersonId));
-        MsgContent.WriteFrom(ContentStream);
-
-        if not AlHttpClient.Post(RequestUrl, MsgContent, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        if ResponseMsg.HttpStatusCode = 200 then
-            exit(GetJsonObjectValue(ResponseMsg, ResponseString, 'persistedFaceId'));
-
-        ResponseMsg.Content.ReadAs(ResponseString);
-        exit(false)
+        exit(SendDeleteRequest(StrSubstNo(PersonIDEndpointTok, GroupId, PersonId)));
     end;
 
-    procedure DeleteFaceFromGroup();
+    procedure UpdatePerson(GroupId: Text[64]; PersonId: Guid; PersonName: Text[128]; AddInfo: Text): HttpResponseMessage
     var
-        FaceAPISetup: Record "FC Face API Setup";
-        AlHttpClient: HttpClient;
+        JsonBody: JsonObject;
     begin
-        FaceAPISetup.Get();
-        AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
-        //SetContentHeaders(MsgContent, ContentType, MicrosoftFaceAPISetup."Subscription Key");
+        JsonBody.Add('name', PersonName);
+        JsonBody.Add('userData', AddInfo);
+        SendHttpRequest(StrSubstNo(PersonIDEndpointTok, GroupId, PersonId), JsonBody, 'PATCH');
     end;
 
-    procedure DetectFaceInFileSource(): Text
+    procedure GetPersonIdFromResponseMessage(ResponseMsg: HttpResponseMessage): Text
+    begin
+        exit(GetJsonObjectValue(ResponseMsg, 'personId'));
+    end;
+
+    #endregion
+
+    #region Faces
+    procedure AddPersonFace(GroupId: Text[64]; PersonId: Text; var ContentStream: InStream): HttpResponseMessage
+    begin
+        exit(SendHttpRequest(StrSubstNo(PersistedFacesEndpointTok, GroupId, PersonId), ContentStream, 'application/octet-stream', 'POST'));
+    end;
+
+    procedure DeletePersonFace(GroupId: Text[64]; PersonId: Guid; FaceId: Guid): HttpResponseMessage
+    begin
+        exit(SendDeleteRequest(StrSubstNo(PersistedFaceIdEndpointTok, GroupId, PersonId, FaceId)));
+    end;
+
+    procedure DetectFaceInFileSource(): HttpResponseMessage
     var
         TempBlob: Codeunit "Temp Blob";
         FileMgt: Codeunit "File Management";
@@ -186,7 +90,7 @@ codeunit 50101 "FC Face API Connector"
         exit(DetectFaceInBlobSource(TempBlob));
     end;
 
-    procedure DetectFaceInBlobSource(var TempBlobImage: Codeunit "Temp Blob"): Text
+    procedure DetectFaceInBlobSource(var TempBlobImage: Codeunit "Temp Blob"): HttpResponseMessage
     var
         ImageStream: InStream;
     begin
@@ -194,18 +98,7 @@ codeunit 50101 "FC Face API Connector"
         exit(DetectFace('application/octet-stream', ImageStream));
     end;
 
-    // TODO: Camera interaction is under construction
-    procedure DetectFaceInCameraSource(): Text
-    /*        var
-                CameraInteraction: Page "Camera Interaction";
-                PictureStream: InStream;*/
-    begin
-        /*            CameraInteraction.RunModal();
-                    if CameraInteraction.GetPicture(PictureStream) then
-                        exit(DetectFace('application/octet-stream', PictureStream));*/
-    end;
-
-    procedure DetectFaceInUrlSource(Url: Text): Text
+    procedure DetectFaceInUrlSource(Url: Text): HttpResponseMessage
     var
         TempBlob: Codeunit "Temp Blob";
         JObj: JsonObject;
@@ -221,30 +114,16 @@ codeunit 50101 "FC Face API Connector"
         exit(DetectFace('application/json', InStr));
     end;
 
-    local procedure DetectFace(ContentType: Text; ContentStream: InStream): Text
-    var
-        AlHttpClient: HttpClient;
-        MsgContent: HttpContent;
-        ResponseMsg: HttpResponseMessage;
-        RequestUrl: Text;
-        EndpointUri: Text;
-        ResponseString: Text;
+    local procedure DetectFace(ContentType: Text; ContentStream: InStream): HttpResponseMessage
     begin
-        PrepareRequestHeaders(AlHttpClient, MsgContent, ContentType);
-
-        // detect = MicrosoftFaceAPISetup.Method
-        EndpointUri := 'detect?returnFaceAttributes=%1';
-        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), StrSubstNo(EndpointUri, GetAttributesString()));
-        MsgContent.WriteFrom(ContentStream);
-
-        if not AlHttpClient.Post(RequestUrl, MsgContent, ResponseMsg) then
-            Error(HttpRequestFailedErr);
-
-        ResponseMsg.Content.ReadAs(ResponseString);
-        exit(ResponseString)
+        exit(SendHttpRequest(StrSubstNo(FaceDetectionEndpointTok, GetAttributesString()), ContentStream, ContentType, 'POST'));
     end;
 
-    local procedure GetJsonObjectValue(var ResponseMessage: HttpResponseMessage; var ResponseString: Text; KeyName: Text): Boolean
+    #endregion
+
+    #region Helper functions
+
+    local procedure GetJsonObjectValue(var ResponseMessage: HttpResponseMessage; KeyName: Text): Text
     var
         MsgString: Text;
         JsonMsg: JsonObject;
@@ -252,13 +131,12 @@ codeunit 50101 "FC Face API Connector"
     begin
         ResponseMessage.Content.ReadAs(MsgString);
         if not JsonMsg.ReadFrom(MsgString) then
-            exit(false);
+            Error(ResponseNotJsonErr);
 
         if not JsonMsg.Get(KeyName, Token) then
-            exit(false);
+            Error(KeyNotFoundErr, KeyName);
 
-        ResponseString := Token.AsValue().AsText();
-        exit(true);
+        exit(Token.AsValue().AsText());
     end;
 
     local procedure PrepareRequestHeaders(var AlHttpClient: HttpClient; var MsgContent: HttpContent; ContentType: Text)
@@ -420,8 +298,72 @@ codeunit 50101 "FC Face API Connector"
         exit(FaceAPISetup."Default Recognition Model");
     end;
 
+    local procedure SendDeleteRequest(EndpointUri: Text) ResponseMsg: HttpResponseMessage
     var
-        FaceNotFoundErr: TextConst ENU = 'Could not detect face in the image';
+        AlHttpClient: HttpClient;
+        RequestUrl: Text;
+    begin
+        SetDefaultRequestHeaders(AlHttpClient);
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), EndpointUri);
+
+        if not AlHttpClient.Delete(RequestUrl, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+    end;
+
+    local procedure SendGetRequest(EndpointUri: Text) ResponseMsg: HttpResponseMessage
+    var
+        AlHttpClient: HttpClient;
+    begin
+        SetDefaultRequestHeaders(AlHttpClient);
+        if not AlHttpClient.Get(ConcatenateUrl(GetBaseRequestUrl(), EndpointUri), ResponseMsg) then
+            Error(HttpRequestFailedErr);
+    end;
+
+    local procedure SendHttpRequest(EndpointUri: Text; ContentJObj: JsonObject; HttpMethod: Text): HttpResponseMessage
+    var
+        TempBlob: Codeunit "Temp Blob";
+        ContentStream: InStream;
+        OutStr: OutStream;
+    begin
+        TempBlob.CreateOutStream(OutStr);
+        ContentJObj.WriteTo(OutStr);
+
+        TempBlob.CreateInStream(ContentStream);
+        exit(SendHttpRequest(EndpointUri, ContentStream, 'application/json', HttpMethod));
+    end;
+
+    local procedure SendHttpRequest(EndpointUri: Text; ContentStream: InStream; ContentType: Text; HttpMethod: Text) ResponseMsg: HttpResponseMessage
+    var
+        AlHttpClient: HttpClient;
+        RequestMessage: HttpRequestMessage;
+        MsgContent: HttpContent;
+        RequestUrl: Text;
+    begin
+        RequestUrl := ConcatenateUrl(GetBaseRequestUrl(), EndpointUri);
+        MsgContent.WriteFrom(ContentStream);
+
+        RequestMessage.Method(HttpMethod);
+        RequestMessage.SetRequestUri(RequestUrl);
+        PrepareRequestHeaders(AlHttpClient, MsgContent, ContentType);
+        RequestMessage.Content(MsgContent);
+
+        if not AlHttpClient.Send(RequestMessage, ResponseMsg) then
+            Error(HttpRequestFailedErr);
+    end;
+
+    #endregion
+
+    var
+        FaceNotFoundErr: Label 'Could not detect face in the image';
         BCUserAgentTok: Label 'Dynamics 365 BC';
         HttpRequestFailedErr: Label 'HTTP request failed';
+        ResponseNotJsonErr: Label 'Response content is not a JSON object.';
+        KeyNotFoundErr: Label 'Key %1 is not found in the response.', Comment = '%1: Key name';
+        PersonGroupsEndpointTok: Label 'persongroups/%1', Comment = '%1: Group ID', Locked = true;
+        PersonGroupTrainingStatusEndpointTok: Label 'persongroups/%1/training', Comment = '%1: Group ID', Locked = true;
+        PersonsEndpointTok: Label 'persongroups/%1/persons', Comment = '%1: Group ID', Locked = true;
+        PersonIDEndpointTok: Label 'persongroups/%1/persons/%2', Comment = '%1: Group ID, %2: Person ID', Locked = true;
+        PersistedFacesEndpointTok: Label 'persongroups/%1/persons/%2/persistedFaces', Comment = '%1: Group ID, %2: Person ID', Locked = true;
+        PersistedFaceIdEndpointTok: Label 'persongroups/%1/persons/%2/persistedFaces/%3', Comment = '%1: Group ID, %2: Person ID, %3: Face ID', Locked = true;
+        FaceDetectionEndpointTok: Label 'detect?returnFaceAttributes=%1', Comment = '%1: List of attributes to detect', Locked = true;
 }

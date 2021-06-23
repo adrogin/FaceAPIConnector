@@ -1,5 +1,39 @@
 codeunit 50104 "FC Face Recognition Mgt."
 {
+    #region Face detection functions
+
+    procedure DetectFaceInFileSource() ReponseTxt: Text
+    var
+        ResponseMsg: HttpResponseMessage;
+    begin
+        ResponseMsg := FaceAPIConnector.DetectFaceInFileSource();
+        VerifyHttpResponse(ResponseMsg);
+        ResponseMsg.Content.ReadAs(ReponseTxt);
+    end;
+
+    procedure DetectFaceInUrlSource(Url: Text) ResponseTxt: Text
+    var
+        ResponseMsg: HttpResponseMessage;
+    begin
+        ResponseMsg := FaceAPIConnector.DetectFaceInUrlSource(Url);
+        VerifyHttpResponse(ResponseMsg);
+        ResponseMsg.Content.ReadAs(ResponseTxt);
+    end;
+
+    // TODO: Camera interaction is under construction
+    procedure DetectFaceInCameraSource(): Text
+    /*        var
+                CameraInteraction: Page "Camera Interaction";
+                PictureStream: InStream;*/
+    begin
+        /*            CameraInteraction.RunModal();
+                    if CameraInteraction.GetPicture(PictureStream) then
+                        exit(DetectFace('application/octet-stream', PictureStream));*/
+    end;
+
+    #endregion
+
+    #region Person Group functions
     procedure CreatePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
     var
         ResponseMsg: HttpResponseMessage;
@@ -8,11 +42,7 @@ codeunit 50104 "FC Face Recognition Mgt."
             Error(GroupNameCannotBeEmptyErr);
 
         ResponseMsg := FaceApiConnector.CreatePersonGroup(FaceRecognitionGroup.ID, FaceRecognitionGroup.Name, '', FaceRecognitionGroup."Recognition Model");
-        if not ResponseMsg.IsSuccessStatusCode() then
-            HttpRequestError(ResponseMsg);
-
-        FaceRecognitionGroup.Validate(Synchronized, true);
-        FaceRecognitionGroup.Modify(true);
+        VerifyHttpResponse(ResponseMsg);
     end;
 
     procedure UpdatePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
@@ -23,11 +53,7 @@ codeunit 50104 "FC Face Recognition Mgt."
             Error(GroupNameCannotBeEmptyErr);
 
         ResponseMsg := FaceApiConnector.UpdatePersonGroup(FaceRecognitionGroup.ID, FaceRecognitionGroup.Name, '');
-        if not ResponseMsg.IsSuccessStatusCode() then
-            HttpRequestError(ResponseMsg);
-
-        FaceRecognitionGroup.Validate(Synchronized, true);
-        FaceRecognitionGroup.Modify(true);
+        VerifyHttpResponse(ResponseMsg);
     end;
 
     procedure DeletePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
@@ -35,13 +61,10 @@ codeunit 50104 "FC Face Recognition Mgt."
         ResponseMsg: HttpResponseMessage;
     begin
         ResponseMsg := FaceApiConnector.DeletePersonGroup(FaceRecognitionGroup.ID);
-        if not ResponseMsg.IsSuccessStatusCode() then
-            HttpRequestError(ResponseMsg);
-    end;
 
-    procedure GetDefaultRecognitionModel(): Text
-    begin
-        exit(FaceApiConnector.GetDefaultRecognitionModel());
+        // If the group is not found on remote, delete the local group without error messages
+        if not ResponseMsg.IsSuccessStatusCode() and (ResponseMsg.HttpStatusCode <> 404) then
+            HttpRequestError(ResponseMsg);
     end;
 
     procedure GetPersonGroupList()
@@ -53,8 +76,7 @@ codeunit 50104 "FC Face Recognition Mgt."
         GroupTok: JsonToken;
     begin
         ResponseMsg := FaceApiConnector.GetPersonGroupList();
-        if not ResponseMsg.IsSuccessStatusCode() then
-            HttpRequestError(ResponseMsg);
+        VerifyHttpResponse(ResponseMsg);
 
         // Do not run table triggers - it will try to synchronize the operation and delete groups in Azure storage
         FaceRecognitionGroup.DeleteAll(false);
@@ -107,6 +129,38 @@ codeunit 50104 "FC Face Recognition Mgt."
         end;
     end;
 
+    #endregion
+
+    #region PersonGroup Person functions
+
+    procedure CreatePerson(var Person: Record "FC Person")
+    var
+        ResponseMsg: HttpResponseMessage;
+    begin
+        // TODO: Aditional info to be added, sending an empty string for now
+        ResponseMsg := FaceApiConnector.CreatePerson(Person."Group ID", Person.Name, '');
+        VerifyHttpResponse(ResponseMsg);
+
+        Person.Validate(ID, FaceApiConnector.GetPersonIdFromResponseMessage(ResponseMsg));
+    end;
+
+    procedure DeletePerson(Person: Record "FC Person")
+    begin
+        VerifyHttpResponse(FaceApiConnector.DeletePerson(Person."Group ID", Person.Name));
+    end;
+
+    procedure UpdatePerson(Person: Record "FC Person")
+    begin
+        VerifyHttpResponse(FaceApiConnector.UpdatePerson(Person."Group ID", Person.ID, Person.Name, ''));
+    end;
+
+    #endregion
+
+    procedure GetDefaultRecognitionModel(): Text
+    begin
+        exit(FaceApiConnector.GetDefaultRecognitionModel());
+    end;
+
     local procedure GetAttributeValueFromJsonObject(JObject: JsonObject; AttributeName: Text): Text
     var
         Attribute: JsonToken;
@@ -122,6 +176,12 @@ codeunit 50104 "FC Face Recognition Mgt."
     begin
         ResponseMsg.Content.ReadAs(ErrorText);
         Error(MessageErr, ResponseMsg.HttpStatusCode(), ResponseMsg.ReasonPhrase(), ErrorText);
+    end;
+
+    local procedure VerifyHttpResponse(ResponseMsg: HttpResponseMessage)
+    begin
+        if not ResponseMsg.IsSuccessStatusCode() then
+            HttpRequestError(ResponseMsg);
     end;
 
     var

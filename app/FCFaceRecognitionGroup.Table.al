@@ -47,6 +47,7 @@ table 50102 "FC Face Recognition Group"
         if Rec."Recognition Model" = '' then
             Rec.Validate("Recognition Model", FaceRecognitionMgt.GetDefaultRecognitionModel());
         FaceRecognitionMgt.CreatePersonGroup(Rec);
+        Rec.Validate(Synchronized, true);
     end;
 
     trigger OnDelete()
@@ -57,6 +58,7 @@ table 50102 "FC Face Recognition Group"
     trigger OnModify()
     begin
         FaceRecognitionMgt.UpdatePersonGroup(Rec);
+        Rec.Validate(Synchronized, true);
     end;
 
     var
