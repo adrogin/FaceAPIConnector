@@ -60,7 +60,7 @@ codeunit 50101 "FC Face API Connector"
     begin
         JsonBody.Add('name', PersonName);
         JsonBody.Add('userData', AddInfo);
-        SendHttpRequest(StrSubstNo(PersonIDEndpointTok, GroupId, PersonId), JsonBody, 'PATCH');
+        exit(SendHttpRequest(StrSubstNo(PersonIDEndpointTok, GroupId, PersonId), JsonBody, 'PATCH'));
     end;
 
     procedure GetPersonIdFromResponseMessage(ResponseMsg: HttpResponseMessage): Text
