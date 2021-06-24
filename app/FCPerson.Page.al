@@ -20,7 +20,7 @@ page 50105 "FC Person"
                 field(Name; Rec.Name)
                 {
                     ApplicationArea = All;
-                    ToolTip = 'Person name';
+                    ToolTip = 'Person name.';
                 }
                 field(Synchronized; Rec.Synchronized)
                 {

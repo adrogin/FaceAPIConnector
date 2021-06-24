@@ -1,5 +1,6 @@
 table 50103 "FC Person"
 {
+    Caption = 'Person';
     DataClassification = CustomerContent;
 
     fields
@@ -7,10 +8,13 @@ table 50103 "FC Person"
         field(1; "Group ID"; Text[64])
         {
             Caption = 'Group ID';
+            TableRelation = "FC Person Group";
+            Editable = false;
         }
         field(2; ID; Guid)
         {
             Caption = 'ID';
+            Editable = false;
         }
         field(3; Name; Text[128])
         {
@@ -19,6 +23,7 @@ table 50103 "FC Person"
         field(4; Synchronized; Boolean)
         {
             Caption = 'Synchronized';
+            Editable = false;
         }
     }
 

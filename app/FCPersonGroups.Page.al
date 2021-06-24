@@ -1,11 +1,11 @@
-page 50104 "FC Face Recognition Groups"
+page 50104 "FC Person Groups"
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
-    SourceTable = "FC Face Recognition Group";
+    SourceTable = "FC Person Group";
     DelayedInsert = true;
-    Caption = 'Face Recognition Groups';
+    Caption = 'Person Groups';
 
     layout
     {
@@ -16,22 +16,27 @@ page 50104 "FC Face Recognition Groups"
                 field(GroupId; Rec.ID)
                 {
                     ApplicationArea = All;
+                    ToolTip = 'User-provided personGroupId as a string. The valid characters include numbers, English letters in lower case, "-" and "_". The maximum length of the personGroupId is 64.';
                 }
                 field(Name; Rec.Name)
                 {
                     ApplicationArea = All;
+                    ToolTip = 'Person group display name. The maximum length is 128.';
                 }
                 field("Recognition Model"; Rec."Recognition Model")
                 {
                     ApplicationArea = All;
+                    ToolTip = 'The recognitionModel associated with this person group';
                 }
                 field(Synchronized; Rec.Synchronized)
                 {
                     ApplicationArea = All;
+                    ToolTip = 'Indicates if the local person group information is synchronized with Microsoft Cognitive Services.';
                 }
                 field(Status; Rec.Status)
                 {
                     ApplicationArea = All;
+                    ToolTip = 'Person group training status. Status succeed means this person group is ready for identification, oterwise the training operation must be performed.';
                 }
             }
         }
@@ -54,6 +59,14 @@ page 50104 "FC Face Recognition Groups"
                     if Confirm(ConfirmOverrideQst) then
                         FaceRecognitionMgt.GetPersonGroupList();
                 end;
+            }
+            action(PersonsList)
+            {
+                ApplicationArea = All;
+                Caption = 'Persons';
+                ToolTip = 'View and manage the list of persons in this group.';
+                RunObject = page "FC Person List";
+                RunPageLink = "Group ID" = field(ID);
             }
         }
     }

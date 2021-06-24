@@ -34,7 +34,7 @@ codeunit 50104 "FC Face Recognition Mgt."
     #endregion
 
     #region Person Group functions
-    procedure CreatePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
+    procedure CreatePersonGroup(var FaceRecognitionGroup: Record "FC Person Group")
     var
         ResponseMsg: HttpResponseMessage;
     begin
@@ -45,7 +45,7 @@ codeunit 50104 "FC Face Recognition Mgt."
         VerifyHttpResponse(ResponseMsg);
     end;
 
-    procedure UpdatePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
+    procedure UpdatePersonGroup(var FaceRecognitionGroup: Record "FC Person Group")
     var
         ResponseMsg: HttpResponseMessage;
     begin
@@ -56,7 +56,7 @@ codeunit 50104 "FC Face Recognition Mgt."
         VerifyHttpResponse(ResponseMsg);
     end;
 
-    procedure DeletePersonGroup(var FaceRecognitionGroup: Record "FC Face Recognition Group")
+    procedure DeletePersonGroup(var FaceRecognitionGroup: Record "FC Person Group")
     var
         ResponseMsg: HttpResponseMessage;
     begin
@@ -69,7 +69,7 @@ codeunit 50104 "FC Face Recognition Mgt."
 
     procedure GetPersonGroupList()
     var
-        FaceRecognitionGroup: Record "FC Face Recognition Group";
+        PersonGroup: Record "FC Person Group";
         ResponseMsg: HttpResponseMessage;
         ResponseInStream: InStream;
         ResponseTok: JsonToken;
@@ -79,21 +79,21 @@ codeunit 50104 "FC Face Recognition Mgt."
         VerifyHttpResponse(ResponseMsg);
 
         // Do not run table triggers - it will try to synchronize the operation and delete groups in Azure storage
-        FaceRecognitionGroup.DeleteAll(false);
+        PersonGroup.DeleteAll(false);
 
         ResponseMsg.Content.ReadAs(ResponseInStream);
         ResponseTok.ReadFrom(ResponseInStream);
 
         foreach GroupTok in ResponseTok.AsArray() do begin
-            FaceRecognitionGroup.Validate(ID, GetAttributeValueFromJsonObject(GroupTok.AsObject(), 'personGroupId'));
-            FaceRecognitionGroup.Validate(Name, CopyStr(GetAttributeValueFromJsonObject(GroupTok.AsObject(), 'name'), 1, MaxStrLen(FaceRecognitionGroup.Name)));
-            FaceRecognitionGroup.Validate("Recognition Model", GetAttributeValueFromJsonObject(GroupTok.AsObject(), 'recognitionModel'));
-            GetPersonGroupTrainingStatus(FaceRecognitionGroup);
-            FaceRecognitionGroup.Insert(false);
+            PersonGroup.Validate(ID, GetAttributeValueFromJsonObject(GroupTok.AsObject(), 'personGroupId'));
+            PersonGroup.Validate(Name, CopyStr(GetAttributeValueFromJsonObject(GroupTok.AsObject(), 'name'), 1, MaxStrLen(PersonGroup.Name)));
+            PersonGroup.Validate("Recognition Model", GetAttributeValueFromJsonObject(GroupTok.AsObject(), 'recognitionModel'));
+            GetPersonGroupTrainingStatus(PersonGroup);
+            PersonGroup.Insert(false);
         end;
     end;
 
-    procedure GetPersonGroupTrainingStatus(var FaceRecongnitionGroup: Record "FC Face Recognition Group")
+    procedure GetPersonGroupTrainingStatus(var FaceRecongnitionGroup: Record "FC Person Group")
     var
         ResponseMsg: HttpResponseMessage;
         ResponseInStream: InStream;
@@ -127,6 +127,11 @@ codeunit 50104 "FC Face Recognition Mgt."
             'failed':
                 exit(RecognitionGroupState::Failed);
         end;
+    end;
+
+    procedure VerifyGroupID(GroupID: Text)
+    begin
+        FaceApiConnector.VerifyGroupID(GroupID);
     end;
 
     #endregion

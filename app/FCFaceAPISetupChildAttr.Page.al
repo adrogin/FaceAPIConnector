@@ -10,11 +10,15 @@ page 50103 "FC Face API Setup Child Attr."
         {
             repeater(Group)
             {
-                field(Name; Name) { }
+                field(Name; Rec.Name)
+                {
+                    ToolTip = 'Attribute name.';
+                }
 
                 field(ChildAttributes; ChildAttributes)
                 {
                     Caption = 'Child attributes';
+                    ToolTip = 'Some attribute have hierarchical relations where the main attribute has multiple sub-attributes. This field presents a list of related child atrributes.';
                     Editable = false;
 
                     trigger OnAssistEdit();
@@ -38,7 +42,7 @@ page 50103 "FC Face API Setup Child Attr."
     trigger OnNewRecord(BelowxRec: Boolean);
     begin
         ChildAttributes := '';
-        "Parent Attribute" := ParentAttrId;
+        Rec."Parent Attribute" := ParentAttrId;
     end;
 
     procedure SetParentAttributeId(NewParentAttrId: Integer)

@@ -1,12 +1,18 @@
-table 50102 "FC Face Recognition Group"
+table 50102 "FC Person Group"
 {
+    Caption = 'Person Group';
     DataClassification = CustomerContent;
 
     fields
     {
         field(1; ID; Text[64])
         {
-            Caption = 'Group Id';
+            Caption = 'Group ID';
+
+            trigger OnValidate()
+            begin
+                FaceRecognitionMgt.VerifyGroupID(ID);
+            end;
         }
         field(2; Name; Text[128])
         {

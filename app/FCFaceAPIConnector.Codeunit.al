@@ -36,6 +36,15 @@ codeunit 50101 "FC Face API Connector"
         SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId), JsonBody, 'PATCH');
     end;
 
+    procedure VerifyGroupID(GroupID: Text)
+    var
+        RegEx: Codeunit Regex;
+        WrongGroupNameErr: Label 'Group ID can only contain lower case characters, digits, dash (-) and undescore (_).';
+    begin
+        if not RegEx.IsMatch(GroupID, '^[a-z0-9\-_]+$') then
+            Error(WrongGroupNameErr);
+    end;
+
     #endregion
 
     #region PersonGroup Person functions
@@ -63,7 +72,7 @@ codeunit 50101 "FC Face API Connector"
         exit(SendHttpRequest(StrSubstNo(PersonIDEndpointTok, GroupId, PersonId), JsonBody, 'PATCH'));
     end;
 
-    procedure GetPersonIdFromResponseMessage(ResponseMsg: HttpResponseMessage): Text
+    procedure GetPersonIdFromResponseMessage(var ResponseMsg: HttpResponseMessage): Text
     begin
         exit(GetJsonObjectValue(ResponseMsg, 'personId'));
     end;
