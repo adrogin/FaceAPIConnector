@@ -1,10 +1,11 @@
-page 50106 "FC Person List"
+page 50106 "FC Persons List"
 {
     PageType = List;
     ApplicationArea = All;
     UsageCategory = Lists;
     SourceTable = "FC Person";
     CardPageId = "FC Person";
+    Caption = 'Persons List';
     DelayedInsert = true;
 
     layout
@@ -37,13 +38,17 @@ page 50106 "FC Person List"
     {
         area(Processing)
         {
-            action(ActionName)
+            action(GetPersonsList)
             {
                 ApplicationArea = All;
+                Caption = 'Get Persons List';
+                ToolTip = 'Import the list of persons in the group from Microsoft Cognitive Services.';
 
-                trigger OnAction();
+                trigger OnAction()
+                var
+                    FaceRecognitionMgt: Codeunit "FC Face Recognition Mgt.";
                 begin
-
+                    FaceRecognitionMgt.GetPersonGroupPersonsList(Rec, Rec.GetRangeMin("Group ID"));
                 end;
             }
         }

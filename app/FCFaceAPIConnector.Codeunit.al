@@ -58,12 +58,12 @@ codeunit 50101 "FC Face API Connector"
         SendHttpRequest(StrSubstNo(PersonsEndpointTok, GroupId), JsonBody, 'POST');
     end;
 
-    procedure DeletePerson(GroupId: Text[64]; PersonId: Guid): HttpResponseMessage
+    procedure DeletePerson(GroupId: Text[64]; PersonId: Text[36]): HttpResponseMessage
     begin
         exit(SendDeleteRequest(StrSubstNo(PersonIDEndpointTok, GroupId, PersonId)));
     end;
 
-    procedure UpdatePerson(GroupId: Text[64]; PersonId: Guid; PersonName: Text[128]; AddInfo: Text): HttpResponseMessage
+    procedure UpdatePerson(GroupId: Text[64]; PersonId: Text[36]; PersonName: Text[128]; AddInfo: Text): HttpResponseMessage
     var
         JsonBody: JsonObject;
     begin
@@ -77,6 +77,20 @@ codeunit 50101 "FC Face API Connector"
         exit(GetJsonObjectValue(ResponseMsg, 'personId'));
     end;
 
+    procedure GetPersonGroupPersonsList(GroupId: Text[64]; StartRecId: Text[36]; var IsLastRecordReceived: Boolean): HttpResponseMessage
+    var
+        ResponseMsg: HttpResponseMessage;
+        TopRecords: Integer;
+    begin
+        // 1000 is the default value and can be omitted
+        // TODO: Number of records to receive should be stored in a setup
+        TopRecords := 1;
+        ResponseMsg := SendGetRequest(StrSubstNo(PersonsListEndpointTok, GroupId, StartRecId, TopRecords));
+        IsLastRecordReceived := IsLastPersonGroupPersonReceived(ResponseMsg, TopRecords);
+
+        exit(ResponseMsg);
+    end;
+
     #endregion
 
     #region Faces
@@ -85,7 +99,7 @@ codeunit 50101 "FC Face API Connector"
         exit(SendHttpRequest(StrSubstNo(PersistedFacesEndpointTok, GroupId, PersonId), ContentStream, 'application/octet-stream', 'POST'));
     end;
 
-    procedure DeletePersonFace(GroupId: Text[64]; PersonId: Guid; FaceId: Guid): HttpResponseMessage
+    procedure DeletePersonFace(GroupId: Text[64]; PersonId: Text[36]; FaceId: Text[36]): HttpResponseMessage
     begin
         exit(SendDeleteRequest(StrSubstNo(PersistedFaceIdEndpointTok, GroupId, PersonId, FaceId)));
     end;
@@ -360,6 +374,18 @@ codeunit 50101 "FC Face API Connector"
             Error(HttpRequestFailedErr);
     end;
 
+    local procedure IsLastPersonGroupPersonReceived(var ResponseMsg: HttpResponseMessage; RequestedRecCount: Integer): Boolean
+    var
+        ContentInStream: InStream;
+        ContentJson: JsonArray;
+        MessageContent: HttpContent;
+    begin
+        MessageContent := ResponseMsg.Content;
+        MessageContent.ReadAs(ContentInStream);
+        ContentJson.ReadFrom(ContentInStream);
+        exit(ContentJson.Count() < RequestedRecCount);
+    end;
+
     #endregion
 
     var
@@ -375,4 +401,5 @@ codeunit 50101 "FC Face API Connector"
         PersistedFacesEndpointTok: Label 'persongroups/%1/persons/%2/persistedFaces', Comment = '%1: Group ID, %2: Person ID', Locked = true;
         PersistedFaceIdEndpointTok: Label 'persongroups/%1/persons/%2/persistedFaces/%3', Comment = '%1: Group ID, %2: Person ID, %3: Face ID', Locked = true;
         FaceDetectionEndpointTok: Label 'detect?returnFaceAttributes=%1', Comment = '%1: List of attributes to detect', Locked = true;
+        PersonsListEndpointTok: Label 'persongroups/%1/persons?start=%2&top=%3', Comment = '%1: Person group ID, %2: starting ID to return, %3: number of records to retrieve';
 }

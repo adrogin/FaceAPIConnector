@@ -65,7 +65,9 @@ page 50104 "FC Person Groups"
                 ApplicationArea = All;
                 Caption = 'Persons';
                 ToolTip = 'View and manage the list of persons in this group.';
-                RunObject = page "FC Person List";
+                Promoted = true;
+                PromotedIsBig = true;
+                RunObject = page "FC Persons List";
                 RunPageLink = "Group ID" = field(ID);
             }
         }

@@ -11,7 +11,7 @@ table 50103 "FC Person"
             TableRelation = "FC Person Group";
             Editable = false;
         }
-        field(2; ID; Guid)
+        field(2; ID; Text[36])
         {
             Caption = 'ID';
             Editable = false;

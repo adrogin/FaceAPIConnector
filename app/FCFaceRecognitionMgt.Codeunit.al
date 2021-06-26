@@ -151,12 +151,42 @@ codeunit 50104 "FC Face Recognition Mgt."
 
     procedure DeletePerson(Person: Record "FC Person")
     begin
-        VerifyHttpResponse(FaceApiConnector.DeletePerson(Person."Group ID", Person.Name));
+        VerifyHttpResponse(FaceApiConnector.DeletePerson(Person."Group ID", Person.ID));
     end;
 
     procedure UpdatePerson(Person: Record "FC Person")
     begin
         VerifyHttpResponse(FaceApiConnector.UpdatePerson(Person."Group ID", Person.ID, Person.Name, ''));
+    end;
+
+    procedure GetPersonGroupPersonsList(var Person: Record "FC Person"; GroupId: Text[64])
+    var
+        ResponseMsg: HttpResponseMessage;
+        ContentInStream: InStream;
+        ResponseArray: JsonArray;
+        PersonJTok: JsonToken;
+        IsLastRecordReceived: Boolean;
+        LastRecId: Text[36];
+    begin
+        Person.SetRange("Group ID", GroupId);
+        Person.DeleteAll(false);
+
+        while not IsLastRecordReceived do begin
+            ResponseMsg := FaceApiConnector.GetPersonGroupPersonsList(GroupId, LastRecId, IsLastRecordReceived);
+            VerifyHttpResponse(ResponseMsg);
+            ResponseMsg.Content.ReadAs(ContentInStream);
+            ResponseArray.ReadFrom(ContentInStream);
+
+            foreach PersonJTok in ResponseArray do begin
+                Person.Validate("Group ID", GroupId);
+                Person.Validate(ID, GetAttributeValueFromJsonObject(PersonJTok.AsObject(), 'personId'));
+                Person.Validate(Name, GetAttributeValueFromJsonObject(PersonJTok.AsObject(), 'name'));
+                Person.Validate(Synchronized, true);
+                Person.Insert(false);
+            end;
+
+            LastRecId := Person.ID;
+        end;
     end;
 
     #endregion
