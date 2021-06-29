@@ -51,6 +51,13 @@ page 50106 "FC Persons List"
                     FaceRecognitionMgt.GetPersonGroupPersonsList(Rec, Rec.GetRangeMin("Group ID"));
                 end;
             }
+            action(Faces)
+            {
+                ApplicationArea = All;
+                ToolTip = 'View and edit person face images.';
+                RunObject = page "FC Person Faces";
+                RunPageLink = "Person Group ID" = field("Group ID"), "Person ID" = field(ID);
+            }
         }
     }
 }

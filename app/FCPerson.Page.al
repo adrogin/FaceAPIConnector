@@ -36,14 +36,12 @@ page 50105 "FC Person"
     {
         area(Processing)
         {
-            action(ActionName)
+            action(Faces)
             {
                 ApplicationArea = All;
-
-                trigger OnAction()
-                begin
-
-                end;
+                ToolTip = 'View and edit person face images.';
+                RunObject = page "FC Person Faces";
+                RunPageLink = "Person ID" = field(ID);
             }
         }
     }

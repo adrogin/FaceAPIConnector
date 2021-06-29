@@ -9,7 +9,7 @@ codeunit 50101 "FC Face API Connector"
         // TODO: Not supported for now, to add user comments
         // JsonBody.Add('userData', DisplayName);
         JsonBody.Add('recognitionModel', RecognitionModel.Trim());
-        SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId.Trim()), JsonBody, 'PUT');
+        exit(SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId.Trim()), JsonBody, 'PUT'));
     end;
 
     procedure DeletePersonGroup(GroupId: Text[64]): HttpResponseMessage
@@ -27,13 +27,20 @@ codeunit 50101 "FC Face API Connector"
         exit(SendGetRequest(StrSubstNo(PersonGroupTrainingStatusEndpointTok, GroupId)));
     end;
 
+    procedure StartPersonGroupTraining(GroupId: Text[64]): HttpResponseMessage
+    var
+        DummyJsonObj: JsonObject;
+    begin
+        exit(SendHttpRequest(StrSubstNo(TrainGroupEndpointTok, GroupId), DummyJsonObj, 'POST'));
+    end;
+
     procedure UpdatePersonGroup(GroupId: Text[64]; DisplayName: Text[128]; Description: Text) ResponseMsg: HttpResponseMessage
     var
         JsonBody: JsonObject;
     begin
         JsonBody.Add('name', DisplayName);
         JsonBody.Add('userData', Description);
-        SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId), JsonBody, 'PATCH');
+        exit(SendHttpRequest(StrSubstNo(PersonGroupsEndpointTok, GroupId), JsonBody, 'PATCH'));
     end;
 
     procedure VerifyGroupID(GroupID: Text)
@@ -55,7 +62,7 @@ codeunit 50101 "FC Face API Connector"
     begin
         JsonBody.Add('name', PersonName);
         JsonBody.Add('userData', AddInfo);
-        SendHttpRequest(StrSubstNo(PersonsEndpointTok, GroupId), JsonBody, 'POST');
+        exit(SendHttpRequest(StrSubstNo(PersonsEndpointTok, GroupId), JsonBody, 'POST'));
     end;
 
     procedure DeletePerson(GroupId: Text[64]; PersonId: Text[36]): HttpResponseMessage
@@ -122,6 +129,11 @@ codeunit 50101 "FC Face API Connector"
     end;
 
     procedure DetectFaceInUrlSource(Url: Text): HttpResponseMessage
+    begin
+        exit(DetectFaceInUrlSource(Url, GetAttributesString()));
+    end;
+
+    procedure DetectFaceInUrlSource(Url: Text; Attributes: Text): HttpResponseMessage
     var
         TempBlob: Codeunit "Temp Blob";
         JObj: JsonObject;
@@ -134,12 +146,49 @@ codeunit 50101 "FC Face API Connector"
         JObj.WriteTo(OutStr);
 
         TempBlob.CreateInStream(InStr);
-        exit(DetectFace('application/json', InStr));
+        exit(DetectFace('application/json', InStr, Attributes));
+    end;
+
+    procedure IdentifyFaceInUrlSource(Url: Text; GroupId: Text[64]; NoOfCandidates: Integer; MinConfidenceLevel: Decimal): HttpResponseMessage
+    var
+        ResponseMsg: HttpResponseMessage;
+        FaceId: JsonToken;
+        ResponseStream: InStream;
+        JsonBody: JsonObject;
+        FacesArray: JsonArray;
+        JFace: JsonToken;
+        NoMatchFoundErr: Label 'Matching face not found';
+    begin
+        ResponseMsg := DetectFaceInUrlSource(Url, '');
+        ResponseMsg.Content.ReadAs(ResponseStream);
+        FacesArray.ReadFrom(ResponseStream);
+
+        if FacesArray.Count = 0 then
+            Error(NoMatchFoundErr);
+
+        // TODO: Process multiple results
+        FacesArray.Get(0, JFace);
+        JFace.AsObject().Get('faceId', FaceId);
+
+        Clear(FacesArray);
+        FacesArray.Add(FaceId.AsValue());
+        JsonBody.Add('faceIds', FacesArray);
+        JsonBody.Add('personGroupId', GroupId);
+        JsonBody.Add('maxNumOfCandidatesReturned', NoOfCandidates);
+        JsonBody.Add('confidenceThreshold', MinConfidenceLevel);
+
+        exit(SendHttpRequest(FaceIdentificationEndpointTok, JsonBody, 'POST'));
     end;
 
     local procedure DetectFace(ContentType: Text; ContentStream: InStream): HttpResponseMessage
     begin
-        exit(SendHttpRequest(StrSubstNo(FaceDetectionEndpointTok, GetAttributesString()), ContentStream, ContentType, 'POST'));
+        exit(DetectFace(ContentType, ContentStream, GetAttributesString()));
+    end;
+
+    local procedure DetectFace(ContentType: Text; ContentStream: InStream; Attributes: Text): HttpResponseMessage
+    begin
+        // TODO: Recognition model must match the target group!
+        exit(SendHttpRequest(StrSubstNo(FaceDetectionEndpointTok, Attributes, GetDefaultRecognitionModel()), ContentStream, ContentType, 'POST'));
     end;
 
     #endregion
@@ -400,6 +449,10 @@ codeunit 50101 "FC Face API Connector"
         PersonIDEndpointTok: Label 'persongroups/%1/persons/%2', Comment = '%1: Group ID, %2: Person ID', Locked = true;
         PersistedFacesEndpointTok: Label 'persongroups/%1/persons/%2/persistedFaces', Comment = '%1: Group ID, %2: Person ID', Locked = true;
         PersistedFaceIdEndpointTok: Label 'persongroups/%1/persons/%2/persistedFaces/%3', Comment = '%1: Group ID, %2: Person ID, %3: Face ID', Locked = true;
-        FaceDetectionEndpointTok: Label 'detect?returnFaceAttributes=%1', Comment = '%1: List of attributes to detect', Locked = true;
         PersonsListEndpointTok: Label 'persongroups/%1/persons?start=%2&top=%3', Comment = '%1: Person group ID, %2: starting ID to return, %3: number of records to retrieve';
+        TrainGroupEndpointTok: Label 'persongroups/%1/train', Comment = '%1: Person group ID', Locked = true;
+        FaceDetectionEndpointTok: Label 'detect?returnFaceAttributes=%1&returnFaceId&recognitionModel=%2',
+            Comment = '%1: List of attributes to detect; %2: Recognition model. If used in conjunction with "identify" API, must match the person group recognition model',
+            Locked = true;
+        FaceIdentificationEndpointTok: Label 'identify';
 }
