@@ -16,12 +16,16 @@ page 50102 "FC Face API Setup Attr."
                     ToolTip = 'Name of the face group.';
                 }
 
-                field(Enabled; Enabled) { }
+                field(Enabled; Rec.Enabled)
+                {
+                    ToolTip = 'Indicates if the selected attribute will be included in the image analysis.';
+                }
 
                 field(ChildAttributes; ChildAttributes)
                 {
                     Caption = 'Child attributes';
                     Editable = false;
+                    ToolTip = 'The subset of related attributes. For example, if the selected attribute is "emotion", child attributes allows to choose values "happiness", "sadness", "fear", etc.';
 
                     trigger OnAssistEdit();
                     var

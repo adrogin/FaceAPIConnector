@@ -1,12 +1,18 @@
-table 50102 "FC Face Recognition Group"
+table 50102 "FC Person Group"
 {
+    Caption = 'Person Group';
     DataClassification = CustomerContent;
 
     fields
     {
         field(1; ID; Text[64])
         {
-            Caption = 'Group Id';
+            Caption = 'Group ID';
+
+            trigger OnValidate()
+            begin
+                FaceRecognitionMgt.VerifyGroupID(ID);
+            end;
         }
         field(2; Name; Text[128])
         {
@@ -47,6 +53,7 @@ table 50102 "FC Face Recognition Group"
         if Rec."Recognition Model" = '' then
             Rec.Validate("Recognition Model", FaceRecognitionMgt.GetDefaultRecognitionModel());
         FaceRecognitionMgt.CreatePersonGroup(Rec);
+        Rec.Validate(Synchronized, true);
     end;
 
     trigger OnDelete()
@@ -57,6 +64,7 @@ table 50102 "FC Face Recognition Group"
     trigger OnModify()
     begin
         FaceRecognitionMgt.UpdatePersonGroup(Rec);
+        Rec.Validate(Synchronized, true);
     end;
 
     var
