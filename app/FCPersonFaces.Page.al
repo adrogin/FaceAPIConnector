@@ -4,11 +4,23 @@ page 50107 "FC Person Faces"
     ApplicationArea = All;
     UsageCategory = Lists;
     SourceTable = "FC Person Face";
+    Caption = 'Person Faces';
 
     layout
     {
         area(Content)
         {
+            group(Title)
+            {
+                ShowCaption = false;
+
+                field(PersonName; PersonName)
+                {
+                    ShowCaption = false;
+                    Editable = false;
+                    Style = StrongAccent;
+                }
+            }
             repeater(Faces)
             {
                 field(FaceID; Rec."Face ID")
@@ -40,23 +52,21 @@ page 50107 "FC Person Faces"
             {
                 ApplicationArea = All;
                 SubPageLink = "Person Group ID" = field("Person Group ID"), "Person ID" = field("Person ID"), "Record ID" = field("Record ID");
+                Caption = 'Face';
             }
         }
     }
 
-    actions
-    {
-        area(Processing)
-        {
-            action(ActionName)
-            {
-                ApplicationArea = All;
+    trigger OnAfterGetRecord()
+    var
+        Person: Record "FC Person";
+    begin
+        if Person.Get(Rec."Person Group ID", Rec."Person ID") then
+            PersonName := Person.Name
+        else
+            PersonName := '';
+    end;
 
-                trigger OnAction();
-                begin
-
-                end;
-            }
-        }
-    }
+    var
+        PersonName: Text;
 }

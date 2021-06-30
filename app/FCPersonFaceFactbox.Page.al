@@ -10,6 +10,8 @@ page 50108 "FC Person Face Factbox"
         {
             group(FaceImage)
             {
+                ShowCaption = false;
+
                 field(Image; Rec.Image)
                 {
                     ApplicationArea = All;
