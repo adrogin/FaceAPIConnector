@@ -91,7 +91,7 @@ codeunit 50101 "FC Face API Connector"
     begin
         // 1000 is the default value and can be omitted
         // TODO: Number of records to receive should be stored in a setup
-        TopRecords := 1;
+        TopRecords := 1000;
         ResponseMsg := SendGetRequest(StrSubstNo(PersonsListEndpointTok, GroupId, StartRecId, TopRecords));
         IsLastRecordReceived := IsLastPersonGroupPersonReceived(ResponseMsg, TopRecords);
 
