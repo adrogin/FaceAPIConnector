@@ -31,4 +31,18 @@ page 50105 "FC Person"
             // TODO: Person faces to be added
         }
     }
+
+    actions
+    {
+        area(Processing)
+        {
+            action(Faces)
+            {
+                ApplicationArea = All;
+                ToolTip = 'View and edit person face images.';
+                RunObject = page "FC Person Faces";
+                RunPageLink = "Person ID" = field(ID);
+            }
+        }
+    }
 }

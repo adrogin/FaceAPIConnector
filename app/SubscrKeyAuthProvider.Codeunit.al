@@ -1,4 +1,4 @@
-codeunit 50105 "Subscr. Key Auth. Provider" implements "AP Azure Auth. Provider"
+codeunit 50106 "Subscr. Key Auth. Provider" implements "AP Azure Auth. Provider"
 {
     procedure GetAuthenticationHeaders(): Dictionary of [Text, Text]
     var
