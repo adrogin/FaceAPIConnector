@@ -225,12 +225,15 @@ codeunit 50101 "FC Face API Connector"
 
     local procedure SetAuthenticationHeaders(var AlHttpClient: HttpClient)
     var
+        FaceApiSetup: Record "FC Face API Setup";
         AzureAuthProvider: Interface "AP Azure Auth. Provider";
         AuthHeaders: Dictionary of [Text, Text];
         I: Integer;
         HeaderName: Text;
         HeaderValue: Text;
     begin
+        FaceApiSetup.Get();
+        AzureAuthProvider := FaceApiSetup."Authentication Provider";
         AuthHeaders := AzureAuthProvider.GetAuthenticationHeaders();
 
         for I := 1 to AuthHeaders.Count() do begin
