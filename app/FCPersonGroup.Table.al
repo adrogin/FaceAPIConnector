@@ -18,7 +18,7 @@ table 50102 "FC Person Group"
         {
             Caption = 'Name';
         }
-        field(3; "Recognition Model"; Text[100])
+        field(3; "Recognition Model"; Text[30])
         {
             Caption = 'Recognition Model';
         }

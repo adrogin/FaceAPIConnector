@@ -60,6 +60,31 @@ page 50104 "FC Person Groups"
                         FaceRecognitionMgt.GetPersonGroupList();
                 end;
             }
+            action(Train)
+            {
+                ApplicationArea = All;
+                Caption = 'Train';
+                ToolTip = 'Send the reques to start the recognition algorithm training on the selected group.';
+
+                trigger OnAction()
+                begin
+                    FaceRecognitionMgt.StartPersonGroupTraining(Rec);
+                end;
+            }
+            action(GetTrainingStatus)
+            {
+                ApplicationArea = All;
+                Caption = 'Get Training Status';
+                ToolTip = 'Update training status for all group currently in training.';
+
+                trigger OnAction()
+                begin
+                    FaceRecognitionMgt.GetAllPendingGroupsTrainingStatus();
+                end;
+            }
+        }
+        area(Navigation)
+        {
             action(PersonsList)
             {
                 ApplicationArea = All;
@@ -76,6 +101,11 @@ page 50104 "FC Person Groups"
     trigger OnNewRecord(BelowxRec: Boolean)
     begin
         Rec.Validate("Recognition Model", FaceRecognitionMgt.GetDefaultRecognitionModel());
+    end;
+
+    trigger OnAfterGetRecord()
+    begin
+        FaceRecognitionMgt.GetAllPendingGroupsTrainingStatus();
     end;
 
     var

@@ -31,6 +31,35 @@ codeunit 50104 "FC Face Recognition Mgt."
                         exit(DetectFace('application/octet-stream', PictureStream));*/
     end;
 
+    procedure IdentifyFaceInUrlSource(Url: Text; PersonGroupId: Text[64]) Candidates: Dictionary of [Text, Decimal]
+    var
+        ResponseMsg: HttpResponseMessage;
+        ResponseStream: InStream;
+        ResponseArray: JsonArray;
+        FaceObj: JsonToken;
+        JCandidates: JsonToken;
+        Candidate: JsonToken;
+        JTokPersonId: JsonToken;
+        JTokConfidence: JsonToken;
+    begin
+        // TODO: No. of candidates to return and the minimum level of confidence must be in a setup
+        ResponseMsg := FaceApiConnector.IdentifyFaceInUrlSource(Url, PersonGroupId, 1, 0.8);
+        VerifyHttpResponse(ResponseMsg);
+
+        ResponseMsg.Content.ReadAs(ResponseStream);
+        ResponseArray.ReadFrom(ResponseStream);
+
+        foreach FaceObj in ResponseArray do begin
+            FaceObj.AsObject().Get('candidates', JCandidates);
+
+            foreach Candidate in JCandidates.AsArray() do begin
+                Candidate.AsObject().Get('personId', JTokPersonId);
+                Candidate.AsObject().Get('confidence', JTokConfidence);
+                Candidates.Add(JTokPersonId.AsValue().AsText(), JTokConfidence.AsValue().AsDecimal());
+            end;
+        end;
+    end;
+
     #endregion
 
     #region Person Group functions
@@ -93,14 +122,14 @@ codeunit 50104 "FC Face Recognition Mgt."
         end;
     end;
 
-    procedure GetPersonGroupTrainingStatus(var FaceRecongnitionGroup: Record "FC Person Group")
+    procedure GetPersonGroupTrainingStatus(var PersonGroup: Record "FC Person Group")
     var
         ResponseMsg: HttpResponseMessage;
         ResponseInStream: InStream;
         JObject: JsonObject;
         GroupStatus: Enum "FC Recognition Group Status";
     begin
-        ResponseMsg := FaceApiConnector.GetPersonGroupTrainingStatus(FaceRecongnitionGroup.ID);
+        ResponseMsg := FaceApiConnector.GetPersonGroupTrainingStatus(PersonGroup.ID);
 
         if ResponseMsg.IsSuccessStatusCode() then begin
             ResponseMsg.Content.ReadAs(ResponseInStream);
@@ -110,7 +139,26 @@ codeunit 50104 "FC Face Recognition Mgt."
         else
             GroupStatus := GroupStatus::"Training Pending";
 
-        FaceRecongnitionGroup.Validate(Status, GroupStatus);
+        PersonGroup.Validate(Status, GroupStatus);
+    end;
+
+    procedure GetAllPendingGroupsTrainingStatus()
+    var
+        PersonGroup: Record "FC Person Group";
+    begin
+        PersonGroup.SetRange(Status, PersonGroup.Status::Training);
+        if PersonGroup.FindSet(true, true) then
+            repeat
+                GetPersonGroupTrainingStatus(PersonGroup);
+                PersonGroup.Modify(false);
+            until PersonGroup.Next() = 0;
+    end;
+
+    procedure StartPersonGroupTraining(var PersonGroup: Record "FC Person Group")
+    begin
+        FaceApiConnector.StartPersonGroupTraining(PersonGroup.ID);
+        PersonGroup.Validate(Status, PersonGroup.Status::Training);
+        PersonGroup.Modify(false);
     end;
 
     local procedure MapGroupTrainingStatus(Status: Text): Enum "FC Recognition Group Status"
@@ -191,6 +239,41 @@ codeunit 50104 "FC Face Recognition Mgt."
 
     #endregion
 
+    #region Person Faces
+
+    procedure AddPersonFace(var PersonFace: Record "FC Person Face")
+    var
+        MediaInStream: InStream;
+        ResponseMsg: HttpResponseMessage;
+        ContentInStream: InStream;
+        ResponseJson: JsonObject;
+        FaceIdJTok: JsonToken;
+        NoPersonFaceMediaErr: Label 'Person face image is missing. Image can be directly imported into the database or specified as the URL of the image file.';
+    begin
+        if PersonFace.Image.HasValue() then
+            MediaInStream := GetPersonFaceDataStream(PersonFace)
+        else
+            if PersonFace.Url <> '' then
+                MediaInStream := ImportMediaFromUrl(PersonFace.Url)
+            else
+                Error(NoPersonFaceMediaErr);
+
+        ResponseMsg := FaceApiConnector.AddPersonFace(PersonFace."Person Group ID", PersonFace."Person ID", MediaInStream);
+        VerifyHttpResponse(ResponseMsg);
+
+        ResponseMsg.Content.ReadAs(ContentInStream);
+        ResponseJson.ReadFrom(ContentInStream);
+        ResponseJson.Get('persistedFaceId', FaceIdJTok);
+        PersonFace.Validate("Face ID", FaceIdJTok.AsValue().AsText());
+    end;
+
+    procedure DeletePersonFace(PersonFace: Record "FC Person Face")
+    begin
+        FaceApiConnector.DeletePersonFace(PersonFace."Person Group ID", PersonFace."Person ID", PersonFace."Face ID");
+    end;
+
+    #endregion
+
     procedure GetDefaultRecognitionModel(): Text
     begin
         exit(FaceApiConnector.GetDefaultRecognitionModel());
@@ -204,6 +287,16 @@ codeunit 50104 "FC Face Recognition Mgt."
         exit(Attribute.AsValue().AsText());
     end;
 
+    local procedure GetPersonFaceDataStream(var PersonFace: Record "FC Person Face") MediaInStream: InStream
+    var
+        TempBlob: Codeunit "Temp Blob";
+        MediaOutStream: OutStream;
+    begin
+        PersonFace.Image.ExportStream(MediaOutStream);
+        TempBlob.CreateOutStream(MediaOutStream);
+        TempBlob.CreateInStream(MediaInStream);
+    end;
+
     local procedure HttpRequestError(ResponseMsg: HttpResponseMessage)
     var
         ErrorText: Text;
@@ -211,6 +304,23 @@ codeunit 50104 "FC Face Recognition Mgt."
     begin
         ResponseMsg.Content.ReadAs(ErrorText);
         Error(MessageErr, ResponseMsg.HttpStatusCode(), ResponseMsg.ReasonPhrase(), ErrorText);
+    end;
+
+    procedure ImportMediaFromUrl(Url: Text) MediaInStream: InStream
+    var
+        Client: HttpClient;
+        ResponseMsg: HttpResponseMessage;
+    begin
+        Client.Get(Url, ResponseMsg);
+        ResponseMsg.Content.ReadAs(MediaInStream);
+    end;
+
+    procedure ImportMediaFromUrl(var PersonFace: Record "FC Person Face")
+    var
+        ResponseInStream: InStream;
+    begin
+        ResponseInStream := ImportMediaFromUrl(PersonFace.Url);
+        PersonFace.Image.ImportStream(ResponseInStream, PersonFace."User Data");
     end;
 
     local procedure VerifyHttpResponse(ResponseMsg: HttpResponseMessage)

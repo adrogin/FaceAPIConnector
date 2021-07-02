@@ -2,6 +2,7 @@ table 50103 "FC Person"
 {
     Caption = 'Person';
     DataClassification = CustomerContent;
+    LookupPageId = "FC Persons List";
 
     fields
     {
