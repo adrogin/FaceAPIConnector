@@ -169,12 +169,26 @@ codeunit 50101 "FC Face API Connector"
     end;
 
     local procedure SetDefaultRequestHeaders(var AlHttpClient: HttpClient)
-    var
-        FaceApiSetup: Record "FC Face API Setup";
     begin
-        FaceAPISetup.Get();
         AlHttpClient.DefaultRequestHeaders.Add('User-Agent', BCUserAgentTok);
-        AlHttpClient.DefaultRequestHeaders.Add('Ocp-Apim-Subscription-Key', FaceAPISetup."Subscription Key");
+        SetAuthenticationHeaders(AlHttpClient);
+    end;
+
+    local procedure SetAuthenticationHeaders(var AlHttpClient: HttpClient)
+    var
+        AzureAuthProvider: Interface "AP Azure Auth. Provider";
+        AuthHeaders: Dictionary of [Text, Text];
+        I: Integer;
+        HeaderName: Text;
+        HeaderValue: Text;
+    begin
+        AuthHeaders := AzureAuthProvider.GetAuthenticationHeaders();
+
+        for I := 1 to AuthHeaders.Count() do begin
+            AuthHeaders.Keys.Get(I, HeaderName);
+            AuthHeaders.Values.Get(I, HeaderValue);
+            AlHttpClient.DefaultRequestHeaders.Add(HeaderName, HeaderValue);
+        end;
     end;
 
     local procedure GetBaseRequestUrl(): Text

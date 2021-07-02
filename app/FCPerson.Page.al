@@ -31,20 +31,4 @@ page 50105 "FC Person"
             // TODO: Person faces to be added
         }
     }
-
-    actions
-    {
-        area(Processing)
-        {
-            action(ActionName)
-            {
-                ApplicationArea = All;
-
-                trigger OnAction()
-                begin
-
-                end;
-            }
-        }
-    }
 }

@@ -10,7 +10,14 @@
   "help": "",
   "url": "",
   "logo": "",
-  "dependencies": [],
+  "dependencies": [
+    {
+      "id": "b025a009-cc99-496d-bf24-7ef01adbf2dc",
+      "name": "Azure Resource Interfaces",
+      "publisher": "Default publisher",
+      "version": "1.0.0.0"    
+    }
+  ],
   "screenshots": [],
   "platform": "18.0.0.0",
   "application": "18.0.0.0",
